@@ -116,8 +116,8 @@ export function LockIcon({ className }: { className?: string }) {
   );
 }
 
-export function Ar({ children, className, size = "text-3xl" }: { children: React.ReactNode; className?: string; size?: string }) {
-  return <span className={cn("ar-c inline-block", size, className)} dir="rtl">{children}</span>;
+export function Ar({ children, className, size = "text-3xl", radiant = true }: { children: React.ReactNode; className?: string; size?: string; radiant?: boolean }) {
+  return <span className={cn("ar-c inline-block", size, radiant && "radiant-gold", className)} dir="rtl">{children}</span>;
 }
 
 export function Stat({ label, value, sub, color }: { label: string; value: React.ReactNode; sub?: string; color?: string }) {
