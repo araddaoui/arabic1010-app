@@ -54,7 +54,7 @@ export default function Settings() {
 
       <Card>
         <h3 className="font-bold">Send feedback</h3>
-        <p className="text-xs text-sand/50">Goes straight to the Supabase <code>feedback</code> table and the admin dashboard.</p>
+        <p className="text-xs text-sand/50">Saved locally in this release and shown in the local admin dashboard.</p>
         <div className="mt-3 flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((s) => (
             <button key={s} onClick={() => setRating(s)} className="text-2xl transition hover:scale-110">

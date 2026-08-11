@@ -4,7 +4,7 @@ import { Button } from "@/components/ui";
 import { useApp } from "@/lib/store";
 
 export default function Auth() {
-  const { signIn, signUp, signInGoogle } = useApp();
+  const { signIn, signUp } = useApp();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("learner@arabic1010.app");
@@ -42,7 +42,7 @@ export default function Auth() {
           <div className="ar mt-8 text-2xl text-gold/80">أَهْلاً وَسَهْلاً بِكُم</div>
           <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs text-sand/50">
             <div><div className="text-lg font-bold text-gold">7</div>modules</div>
-            <div><div className="text-lg font-bold text-gold">329</div>audio files</div>
+            <div><div className="text-lg font-bold text-gold">281</div>audio files</div>
             <div><div className="text-lg font-bold text-gold">12</div>badges</div>
           </div>
         </div>

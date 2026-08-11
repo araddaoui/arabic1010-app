@@ -151,7 +151,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>
         <footer className="border-t border-white/5 px-6 py-4 text-center text-xs text-sand/30">
-          Arabic1010 · Modern Standard Arabic for beginners · 329 native-speaker audio assets · v2.0
+          Arabic1010 · Modern Standard Arabic for beginners · 281 native-speaker audio assets · v2.0
         </footer>
       </div>
 

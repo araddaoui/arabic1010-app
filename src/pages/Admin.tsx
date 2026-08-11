@@ -15,7 +15,6 @@ type Tab = "users" | "feedback" | "audio" | "content" | "analytics";
 const AUDIO_SETS = [
   { folder: "cognates", speaker: "Ola", files: COGNATES.map((c) => `${c.id}.mp3`) },
   { folder: "letters", speaker: "Ali", files: LETTERS.flatMap((l) => VOWELS.map((v) => `${l.id}_${v.key}.mp3`)) },
-  { folder: "letter-images", speaker: "Salaheddine", files: LETTERS.map((l) => `${l.id}_word.mp3`) },
   { folder: "words", speaker: "Khouloud", files: VOCAB.map((w) => `${w.id}.mp3`) },
   { folder: "dialogue", speaker: "Ali & Emna", files: DIALOGUES.flatMap((d) => d.lines.map((l) => `${l.id}.mp3`)) },
   { folder: "numbers", speaker: "Amer", files: NUMBERS.map((n) => `${n.n}.mp3`) },
@@ -30,12 +29,8 @@ export default function Admin() {
   const [q, setQ] = useState("");
   const [words, setWords] = useState<VocabWord[]>(VOCAB);
   const [lines, setLines] = useState(DIALOGUES[0].lines);
-  const [uploaded, setUploaded] = useState<Record<string, number>>({ cognates: 30, numbers: 21, countries: 22, words: 12, dialogue: 14, letters: 96, "letter-images": 0 });
+  const [uploaded, setUploaded] = useState<Record<string, number>>({ cognates: 30, numbers: 21, countries: 22, words: 20, dialogue: 20, letters: 168 });
   const [openFolder, setOpenFolder] = useState<string | null>("cognates");
-
-  if (user?.role !== "admin") {
-    return <EmptyState icon="⛔" title="Admin only" body="Sign in with admin@arabic1010.app to view the admin dashboard." />;
-  }
 
   const feedback = db.feedback.filter((f) => filter === "all" || f.category === filter || f.status === filter);
   const totalFiles = AUDIO_SETS.reduce((s, a) => s + a.files.length, 0);
@@ -60,6 +55,10 @@ export default function Admin() {
     });
   }, [db]);
 
+  if (user?.role !== "admin") {
+    return <EmptyState icon="⛔" title="Admin only" body="Sign in with admin@arabic1010.app to view the admin dashboard." />;
+  }
+
   const TABS: [Tab, string][] = [["users", "👥 Users"], ["feedback", "💌 Feedback"], ["audio", "🎧 Audio assets"], ["content", "📝 Content"], ["analytics", "📊 Analytics"]];
 
   return (
@@ -72,7 +71,7 @@ export default function Admin() {
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat label="Users" value={db.users.length} sub={`${db.users.filter((u) => u.premium).length} premium`} />
         <Stat label="Open feedback" value={db.feedback.filter((f) => f.status === "open").length} sub={`${db.feedback.length} total`} color="#C9A227" />
-        <Stat label="Audio uploaded" value={`${totalUploaded}/${totalFiles}`} sub="Supabase Storage" color="#1D9E75" />
+        <Stat label="Audio uploaded" value={`${totalUploaded}/${totalFiles}`} sub="Bundled public/audio" color="#1D9E75" />
         <Stat label="Avg. streak" value={Math.round(db.users.reduce((s, u) => s + u.streak, 0) / db.users.length)} sub="days" />
       </div>
 
@@ -159,7 +158,7 @@ export default function Admin() {
           <Card>
             <div className="flex items-center justify-between text-sm">
               <span className="font-bold">Upload pipeline — {totalUploaded}/{totalFiles} files verified</span>
-              <span className="text-xs text-sand/40">Supabase Storage → CDN</span>
+              <span className="text-xs text-sand/40">Vercel static assets</span>
             </div>
             <div className="mt-2"><Progress pct={(totalUploaded / totalFiles) * 100} color="#1D9E75" /></div>
           </Card>

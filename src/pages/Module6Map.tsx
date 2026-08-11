@@ -17,6 +17,7 @@ export function Module6Map() {
   const [testMode, setTestMode] = useState<'find' | 'name' | 'hear' | null>(null);
   const [testTarget, setTestTarget] = useState<typeof countries[0] | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [selectedCountryForMap, setSelectedCountryForMap] = useState<typeof countries[0] | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const countriesLearned = Object.keys(user?.progress ?? {}).filter(k => k.startsWith('map:')).map(k => k.split(':')[1]);
@@ -115,8 +116,6 @@ export function Module6Map() {
       </div>
     );
   }
-
-  const [selectedCountryForMap, setSelectedCountryForMap] = useState<typeof countries[0] | null>(null);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4">
