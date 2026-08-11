@@ -5,6 +5,8 @@ import { useTypingPool, type TypingTarget } from "@/lib/typingPool";
 import { ARABIC_KEYBOARD_ROWS, TYPING_ACTIVE_CHARS } from "@/data/arabicKeyboard";
 import { cn } from "@/utils/cn";
 
+type KeyboardMode = "smartphone" | "pc";
+
 export default function Typing() {
   const { award, learnedCount } = useApp();
   const { eligible, totalPossible } = useTypingPool();
@@ -13,6 +15,10 @@ export default function Typing() {
   const [status, setStatus] = useState<"typing" | "correct" | "wrong">("typing");
   const [startTime, setStartTime] = useState<number | null>(null);
   const [lastWpm, setLastWpm] = useState<number | null>(null);
+  const [mode, setMode] = useState<KeyboardMode>(() => {
+    if (typeof window === "undefined") return "smartphone";
+    return (window.localStorage.getItem("arabic1010-typing-mode") as KeyboardMode) || "smartphone";
+  });
 
   const target: TypingTarget | undefined = eligible[index];
 
@@ -21,6 +27,10 @@ export default function Typing() {
     setStatus("typing");
     setStartTime(null);
   }, [target?.key]);
+
+  useEffect(() => {
+    window.localStorage.setItem("arabic1010-typing-mode", mode);
+  }, [mode]);
 
   const handleKey = useCallback(
     (char: string) => {
@@ -75,7 +85,29 @@ export default function Typing() {
             <h1 className="text-xl font-bold">{MODULE_META.typing.title}</h1>
             <p className="mt-1 text-sm text-sand/60">{MODULE_META.typing.blurb}</p>
           </div>
-          <Stat label="Digital fluency" value={`${learned}/${totalPossible}`} color={MODULE_META.typing.color} />
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg bg-white/5 p-1">
+              <button
+                onClick={() => setMode("smartphone")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition",
+                  mode === "smartphone" ? "bg-gold text-ink" : "text-sand/50 hover:text-sand"
+                )}
+              >
+                <span>📱</span> Smartphone
+              </button>
+              <button
+                onClick={() => setMode("pc")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition",
+                  mode === "pc" ? "bg-gold text-ink" : "text-sand/50 hover:text-sand"
+                )}
+              >
+                <span>💻</span> PC
+              </button>
+            </div>
+            <Stat label="Digital fluency" value={`${learned}/${totalPossible}`} color={MODULE_META.typing.color} />
+          </div>
         </div>
         <Progress pct={(learned / totalPossible) * 100} color={MODULE_META.typing.color} />
       </Card>
@@ -143,7 +175,9 @@ export default function Typing() {
                     )}
                   >
                     <span className="ar">{k.char}</span>
-                    <span className="text-[8px] text-sand/30">{k.qwertyPos}</span>
+                    {mode === "pc" && (
+                      <span className="text-[8px] text-sand/30">{k.qwertyPos}</span>
+                    )}
                   </button>
                 );
               })}
@@ -153,6 +187,9 @@ export default function Typing() {
             <Button variant="ghost" onClick={backspace} disabled={status !== "typing"}>⌫ Backspace</Button>
           </div>
         </div>
+        <p className="mt-4 text-center text-[10px] text-sand/30 uppercase tracking-widest">
+          {mode === "smartphone" ? "Smartphone Mode: Simplified for touch" : "PC Mode: Showing physical key mappings"}
+        </p>
       </Card>
     </div>
   );

@@ -6,6 +6,7 @@ export type KeyDef = { char: string; row: number; qwertyPos: string };
 // beginners while they build Arabic muscle memory.
 export const ARABIC_KEYBOARD_ROWS: KeyDef[][] = [
   [
+    { char: "ذ", row: 1, qwertyPos: "`" },
     { char: "ض", row: 1, qwertyPos: "Q" },
     { char: "ص", row: 1, qwertyPos: "W" },
     { char: "ث", row: 1, qwertyPos: "E" },
