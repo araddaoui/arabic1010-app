@@ -158,6 +158,16 @@ export function Module6Map() {
                 if (activeRegion && c.region !== activeRegion) return null;
                 const isSelected = selectedCountryForMap?.id === c.id || selectedCountry?.id === c.id;
                 const isHovered = hoveredCountry === c.id;
+                // Give the active country a generous visual target without changing the
+                // source map or the country coordinates.
+                const activeRadius = isSelected
+                  ? Math.max(c.r * 3, 48)
+                  : isHovered
+                    ? Math.max(c.r * 1.6, 28)
+                    : c.r;
+                const activeFontSize = isSelected
+                  ? Math.max(28, Math.min(42, c.r * 1.65))
+                  : Math.max(18, Math.min(26, c.r * 0.85));
 
                 let fillColor = 'transparent';
                 let strokeColor = 'none';
@@ -165,10 +175,10 @@ export function Module6Map() {
                 let opacity = 0;
 
                 if (isSelected) {
-                  fillColor = 'rgba(255,200,0,0.25)';  // yellow highlight
+                  fillColor = 'rgba(255,200,0,0.42)';  // prominent yellow highlight
                   opacity = 1;
                   strokeColor = '#FF8F00';
-                  strokeW = 2.5;
+                  strokeW = 4;
                 } else if (isHovered) {
                   fillColor = 'rgba(0,0,0,0.1)';  // subtle on hover
                   opacity = 1;
@@ -189,7 +199,7 @@ export function Module6Map() {
                     <circle
                       cx={c.cx}
                       cy={c.cy}
-                      r={c.r}
+                      r={activeRadius}
                       fill={fillColor}
                       stroke={strokeColor}
                       strokeWidth={strokeW}
@@ -205,13 +215,14 @@ export function Module6Map() {
                         textAnchor="middle"
                         dominantBaseline="central"
                         fill="#1A1A2E"
-                        fontSize={Math.max(14, Math.min(22, c.r * 0.5))}
+                        fontSize={activeFontSize}
                         fontWeight="bold"
                         fontFamily="'Noto Naskh Arabic', serif"
                         className="pointer-events-none"
                         stroke="#FFFFFF"
-                        strokeWidth="3"
+                        strokeWidth={isSelected ? 4 : 3}
                         paintOrder="stroke"
+                        style={{ transition: 'font-size 150ms ease' }}
                       >
                         {c.nameArabic}
                       </text>
