@@ -76,7 +76,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-gold via-coral to-maroon text-lg font-black text-ink shadow-lg shadow-gold/20">ع</span>
           <span>
             <span className="block text-sm font-extrabold tracking-wide">Arabic<span className="text-gold">1010</span></span>
-            <span className="ar block text-[13px] text-sand/50">العَرَبِيَّة</span>
+            <span className="ar majestic-arabic block text-[15px]">العَرَبِيَّة</span>
           </span>
         </button>
 

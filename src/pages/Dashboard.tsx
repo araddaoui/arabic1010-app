@@ -19,7 +19,7 @@ export default function Dashboard({ navigate }: { navigate: (p: string) => void 
         className="pattern relative overflow-hidden rounded-3xl border border-gold/25 bg-gradient-to-br from-maroon/50 via-ink-2 to-ink p-6 sm:p-8">
         <div className="relative z-10 flex flex-wrap items-end gap-6">
           <div className="min-w-0 flex-1">
-            <div className="ar radiant-gold text-4xl mb-2">أَهْلاً {user.name.split(" ")[0]}!</div>
+            <div className="ar majestic-arabic text-5xl mb-2" aria-label="Arabic language">العَرَبِيَّة</div>
             <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Welcome back — {overall}% of the course complete</h1>
             <p className="mt-2 max-w-xl text-sm text-sand/60">
               {due.length > 0
