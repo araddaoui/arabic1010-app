@@ -7,7 +7,8 @@ import { Button } from '@/components/ui';
 import { UpgradeModal } from '@/components/Layout';
 
 // Base map served from public/images/ — no external dependency.
-const MAP_IMG = '/images/arab-world-map.jpg';
+// Exact user-provided original map; its 1408×768 viewBox matches mapConfig.
+const MAP_IMG = '/images/arab-world-map.png';
 
 export function Module6Map() {
   const { user, award } = useApp();
