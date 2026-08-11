@@ -33,7 +33,7 @@ export default function Auth() {
               <span className="text-lg font-extrabold">Arabic<span className="text-gold">1010</span></span>
             </div>
             <h1 className="mt-8 text-3xl font-extrabold leading-tight">
-              Modern Standard Arabic,<br />built the way adults learn.
+              Modern Standard Arabic,<br />made for every learner.
             </h1>
             <p className="mt-3 text-sm text-sand/60">
               Cognates that prove you already know Arabic · 28 letters with handwriting feedback · numbers, vocabulary, real dialogue and the whole Arab world map.

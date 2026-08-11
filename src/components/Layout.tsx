@@ -73,7 +73,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
         open ? "translate-x-0" : "-translate-x-full"
       )}>
         <button onClick={() => nav("/")} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/5">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-gold to-maroon text-lg font-black text-ink">ع</span>
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-gold via-coral to-maroon text-lg font-black text-ink shadow-lg shadow-gold/20">ع</span>
           <span>
             <span className="block text-sm font-extrabold tracking-wide">Arabic<span className="text-gold">1010</span></span>
             <span className="ar block text-[13px] text-sand/50">العَرَبِيَّة</span>
@@ -88,7 +88,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
             return (
               <button key={n.path} onClick={() => nav(n.path)}
                 className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition",
-                  active ? "bg-gold/15 font-semibold text-gold" : "text-sand/70 hover:bg-white/5")}>
+                  active ? "bg-gradient-to-r from-gold/18 via-azure/10 to-transparent font-semibold text-gold shadow-inner shadow-gold/10" : "text-sand/70 hover:bg-azure/10 hover:text-sand")}>
                 <span>{n.icon}</span>
                 <span className="flex-1 text-left">{n.label}</span>
                 {meta && <span className="text-[10px] text-sand/40">{learnedCount(modKey)}/{meta.total}</span>}
@@ -133,10 +133,10 @@ export default function Layout({ path, navigate, children }: { path: string; nav
             </div>
             <div className="mt-1.5 max-w-md"><Progress pct={lv.pct} /></div>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-gold/25 bg-black/25 px-3 py-1.5 text-sm">
+          <motion.div whileHover={{ y: -1 }} className="flex items-center gap-2 rounded-xl border border-gold/25 bg-gradient-to-r from-gold/12 to-coral/10 px-3 py-1.5 text-sm shadow-lg shadow-gold/5">
             <span>🔥</span><span className="font-bold">{user?.streak ?? 0}</span>
             <span className="hidden text-xs text-sand/50 sm:inline">day streak</span>
-          </div>
+          </motion.div>
           {DEV_UNLOCK_ALL ? (
             <span className="hidden rounded-lg bg-ok/20 px-2 py-1 text-[11px] font-bold text-ok sm:inline">ALL UNLOCKED</span>
           ) : user?.premium ? (
@@ -160,7 +160,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
       <Modal open={!!badge} onClose={clearBadge}>
         <Confetti fire={!!badge} />
         <div className="text-center">
-          <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 180 }} className="text-7xl">
+          <motion.div initial={{ scale: 0.7, rotate: -14, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 180, damping: 12 }} className="mx-auto grid h-28 w-28 place-items-center rounded-full border border-gold/40 bg-gradient-to-br from-gold/20 via-azure/15 to-violet/20 text-7xl shadow-2xl shadow-gold/20">
             {badge?.icon}
           </motion.div>
           <div className="mt-2 text-xs uppercase tracking-[0.3em] text-gold">Badge unlocked</div>
@@ -173,7 +173,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
-            className="fixed bottom-5 left-1/2 z-[70] -translate-x-1/2 rounded-full border border-gold/40 bg-ink px-5 py-2.5 text-sm font-semibold text-gold shadow-xl">
+            className="fixed bottom-5 left-1/2 z-[70] -translate-x-1/2 rounded-full border border-emerald/45 bg-gradient-to-r from-ink via-ink-2 to-ink px-5 py-2.5 text-sm font-semibold text-gold shadow-xl shadow-emerald/10">
             {toast}
           </motion.div>
         )}

@@ -9,13 +9,13 @@ export function Button({
   size?: "sm" | "md" | "lg";
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition active:scale-[.97] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/70";
+    "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition duration-200 active:scale-[.97] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/70";
   const sizes = { sm: "px-3 py-1.5 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3.5 text-base" };
   const variants = {
-    primary: "bg-gold text-ink hover:bg-gold-soft shadow-lg shadow-gold/20",
-    gold: "bg-gradient-to-br from-gold to-[#a8811b] text-ink hover:brightness-110",
-    ghost: "bg-white/5 text-sand hover:bg-white/10 border border-white/10",
-    outline: "border border-gold/50 text-gold hover:bg-gold/10",
+    primary: "bg-gradient-to-r from-gold via-gold-soft to-gold text-ink hover:brightness-110 shadow-lg shadow-gold/20",
+    gold: "bg-gradient-to-br from-gold via-[#e6cf7a] to-[#a8811b] text-ink hover:brightness-110 shadow-lg shadow-gold/20",
+    ghost: "bg-white/6 text-sand hover:bg-azure/12 border border-white/12 hover:border-azure/35",
+    outline: "border border-gold/55 text-gold hover:bg-gold/10 hover:border-azure/55",
     danger: "bg-err/90 text-white hover:bg-err",
   };
   return (
@@ -34,7 +34,7 @@ export function Progress({ pct, color = "#C9A227", height = 8 }: { pct: number; 
     <div className="w-full rounded-full bg-white/10 overflow-hidden" style={{ height }}>
       <motion.div
         className="h-full rounded-full"
-        style={{ background: `linear-gradient(90deg, ${color}, #e6cf7a)` }}
+        style={{ background: `linear-gradient(90deg, ${color}, ${color}cc 58%, #e6cf7a)` }}
         initial={{ width: 0 }}
         animate={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
         transition={{ type: "spring", stiffness: 90, damping: 20 }}
@@ -84,7 +84,7 @@ export function Confetti({ fire }: { fire: boolean }) {
   const [pieces, setPieces] = useState<{ id: number; x: number; c: string; d: number; r: number }[]>([]);
   useEffect(() => {
     if (!fire) return;
-    const colors = ["#C9A227", "#1D9E75", "#B22222", "#E6CF7A", "#6B1A1A", "#F5EDD6"];
+    const colors = ["#C9A227", "#20B486", "#3E8ED0", "#8B6BFF", "#F07F5F", "#E6CF7A"];
     setPieces(Array.from({ length: 70 }, (_, i) => ({
       id: i, x: Math.random() * 100, c: colors[i % colors.length],
       d: 0.4 + Math.random() * 0.8, r: Math.random() * 360,
