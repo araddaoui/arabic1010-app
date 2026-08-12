@@ -19,6 +19,13 @@ export default function Auth() {
     setErr(msg); setBusy(false);
   };
 
+  const launchPreview = async () => {
+    setMode("in");
+    setBusy(true); setErr(null);
+    const msg = await signIn("learner@arabic1010.app", "arabic1010");
+    setErr(msg); setBusy(false);
+  };
+
   const input = "w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-gold/70";
 
   return (
@@ -76,8 +83,8 @@ export default function Auth() {
               <div className="majestic-arabic text-3xl" aria-label="Coming soon">قريباً</div>
               <h2 className="text-base font-bold text-sand">Secure learner accounts are coming soon.</h2>
               <p className="text-xs leading-relaxed text-sand/55">We are preparing a simple email-and-password account system with secure progress storage. Until then, the Preview account is the complete way to explore the learning experience.</p>
-              <Button type="button" className="w-full" onClick={() => { setMode("in"); setShowDemo(true); }}>
-                Try the Preview
+              <Button type="button" className="w-full" onClick={launchPreview} disabled={busy}>
+                {busy ? "Opening Preview…" : "Try the Preview"}
               </Button>
             </div>
           )}
@@ -86,14 +93,22 @@ export default function Auth() {
             <span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" />
           </div>
 
-          {/* Demo mode — clearly labelled, no pretence of real Google OAuth */}
+          {/* Preview opens the maintained learner account; other demo accounts remain available below. */}
           <Button
             variant="ghost"
             className="w-full border border-gold/30 bg-gold/10 text-gold hover:bg-gold/20"
+            onClick={launchPreview}
+            disabled={busy}
+          >
+            {busy ? "Opening Preview…" : "🎓 Try the Preview"}
+          </Button>
+          <button
+            type="button"
+            className="mt-3 w-full text-[11px] text-sand/40 underline decoration-white/15 underline-offset-4 transition hover:text-gold"
             onClick={() => setShowDemo((s) => !s)}
           >
-            🎓 Try the Preview
-          </Button>
+            {showDemo ? "Hide demo accounts" : "Browse other demo accounts"}
+          </button>
 
           {showDemo && (
             <motion.div
