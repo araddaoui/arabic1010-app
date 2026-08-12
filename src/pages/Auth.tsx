@@ -23,7 +23,7 @@ export default function Auth() {
   const input = "w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-gold/70";
 
   return (
-    <div className="pattern flex min-h-screen items-center justify-center p-4">
+    <div className="pattern flex min-h-screen flex-col items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-gold/25 glass md:grid-cols-2">
         <div className="hidden flex-col justify-between bg-gradient-to-br from-maroon/70 via-ink to-ink p-8 md:flex">
@@ -37,7 +37,7 @@ export default function Auth() {
               Modern Standard Arabic<br />for every learner.
             </h1>
             <p className="mt-3 text-sm text-sand/60">
-              Cognates that prove you already know Arabic · letters with handwriting and typing practice · native pronouncing, numbers, vocabulary, real dialogue and the whole Arab world map.
+              Cognates that prove you already know Arabic · letters with handwriting and typing practice · native pronunciation, numbers, vocabulary, real dialogue and the whole Arab world map.
             </p>
           </div>
           <div className="mt-8 flex flex-col items-center text-center">
@@ -131,6 +131,11 @@ export default function Auth() {
           </p>
         </div>
       </motion.div>
+      <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-sand/45">
+        <a href="#/terms" className="transition hover:text-gold">Terms of Service</a>
+        <a href="#/privacy" className="transition hover:text-gold">Privacy Policy</a>
+        <a href="#/contact" className="transition hover:text-gold">Contact</a>
+      </div>
     </div>
   );
 }

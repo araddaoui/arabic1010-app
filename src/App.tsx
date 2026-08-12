@@ -15,6 +15,7 @@ import Badges from "./pages/Badges";
 import Review from "./pages/Review";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import PublicInfo from "./pages/PublicInfo";
 
 function useHashRoute(): [string, (p: string) => void] {
   const [path, setPath] = useState(() => window.location.hash.replace(/^#/, "") || "/");
@@ -48,6 +49,10 @@ function Shell() {
         </div>
       </div>
     );
+  }
+
+  if (path === "/terms" || path === "/privacy" || path === "/contact") {
+    return <PublicInfo path={path} />;
   }
 
   if (!user) return <Auth />;
