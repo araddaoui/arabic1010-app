@@ -113,12 +113,12 @@ type DB = { users: Profile[]; feedback: Feedback[]; currentUserId: string | null
 
 function initialDB(): DB {
   const admin = seedProfile({
-    id: "u-admin", email: "admin@arabic1010.app", name: "Dr. Nadia Haddad", role: "admin",
+    id: "u-admin", email: "admin@arabic1010.com", name: "Dr. Nadia Haddad", role: "admin",
     xp: 4820, streak: 41, premium: true, createdAt: "2026-01-12",
     badges: ["bridge", "traveler", "script", "warrior"],
   });
   const demo = seedProfile({
-    id: "u-demo", email: "learner@arabic1010.app", name: "Claudia Reyes", xp: 340, streak: 5,
+    id: "u-demo", email: "learner@arabic1010.com", name: "Claudia Reyes", xp: 340, streak: 5,
     premium: false, createdAt: "2026-05-02", badges: ["bridge"],
     progress: {
       ...demoProgress("cognates", ["sugar", "giraffe", "cipher", "cotton", "sofa"]),
@@ -143,10 +143,24 @@ function initialDB(): DB {
   return { users: [admin, demo, ...others], feedback, currentUserId: null };
 }
 
+function migrateLegacyEmails(db: DB): DB {
+  const replacements: Record<string, string> = {
+    "learner@arabic1010.app": "learner@arabic1010.com",
+    "admin@arabic1010.app": "admin@arabic1010.com",
+  };
+  return {
+    ...db,
+    users: db.users.map((user) => {
+      const replacement = replacements[user.email.toLowerCase()];
+      return replacement ? { ...user, email: replacement } : user;
+    }),
+  };
+}
+
 function load(): DB {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as DB;
+    if (raw) return migrateLegacyEmails(JSON.parse(raw) as DB);
   } catch { /* ignore */ }
   return initialDB();
 }

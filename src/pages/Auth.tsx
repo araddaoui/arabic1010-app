@@ -6,7 +6,7 @@ import { useApp } from "@/lib/store";
 export default function Auth() {
   const { signIn } = useApp();
   const [mode, setMode] = useState<"in" | "soon">("in");
-  const [email, setEmail] = useState("learner@arabic1010.app");
+  const [email, setEmail] = useState("learner@arabic1010.com");
   const [password, setPassword] = useState("arabic1010");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,7 +22,7 @@ export default function Auth() {
   const launchPreview = async () => {
     setMode("in");
     setBusy(true); setErr(null);
-    const msg = await signIn("learner@arabic1010.app", "arabic1010");
+    const msg = await signIn("learner@arabic1010.com", "arabic1010");
     setErr(msg); setBusy(false);
   };
 
@@ -127,7 +127,7 @@ export default function Auth() {
               <button
                 className="mt-2 w-full rounded-lg border border-gold/30 bg-gold/10 py-2 text-xs font-semibold text-gold hover:bg-gold/20 transition"
                 onClick={() => {
-                  setEmail("learner@arabic1010.app");
+                  setEmail("learner@arabic1010.com");
                   setPassword("arabic1010");
                   setMode("in");
                   setShowDemo(false);
@@ -138,7 +138,7 @@ export default function Auth() {
               <button
                 className="w-full rounded-lg border border-white/15 bg-white/5 py-2 text-xs font-semibold text-sand/70 hover:bg-white/10 transition"
                 onClick={() => {
-                  setEmail("admin@arabic1010.app");
+                  setEmail("admin@arabic1010.com");
                   setPassword("arabic1010");
                   setMode("in");
                   setShowDemo(false);

@@ -56,7 +56,7 @@ export default function Admin() {
   }, [db]);
 
   if (user?.role !== "admin") {
-    return <EmptyState icon="⛔" title="Admin only" body="Sign in with admin@arabic1010.app to view the admin dashboard." />;
+    return <EmptyState icon="⛔" title="Admin only" body="Sign in with admin@arabic1010.com to view the admin dashboard." />;
   }
 
   const TABS: [Tab, string][] = [["users", "👥 Users"], ["feedback", "💌 Feedback"], ["audio", "🎧 Audio assets"], ["content", "📝 Content"], ["analytics", "📊 Analytics"]];
