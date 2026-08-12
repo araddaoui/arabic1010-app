@@ -17,31 +17,31 @@ export default function Dashboard({ navigate }: { navigate: (p: string) => void 
     <div className="mx-auto max-w-6xl space-y-6">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         className="pattern relative overflow-hidden rounded-3xl border border-gold/25 bg-gradient-to-br from-maroon/50 via-ink-2 to-ink p-6 sm:p-8">
-        <div className="relative z-10 flex flex-wrap items-end gap-6">
-          <div className="min-w-0 flex-1">
-            <div className="ar majestic-arabic text-5xl mb-2" aria-label="Arabic language">العَرَبِيَّة</div>
-            <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Welcome back — {overall}% of the course complete</h1>
-            <p className="mt-2 max-w-xl text-sm text-sand/60">
-              {due.length > 0
-                ? `${due.length} item${due.length > 1 ? "s are" : " is"} due for spaced-repetition review today.`
-                : "Nothing due for review — perfect time to open a new module."}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => navigate(due.length ? "/review" : "/cognates")}>
-                {due.length ? `Review ${due.length} item${due.length > 1 ? "s" : ""}` : "Continue learning →"}
-              </Button>
-              <Button variant="ghost" onClick={() => navigate("/badges")}>🏅 {user.badges.length}/10 badges</Button>
-            </div>
+        <div className="relative z-10 text-center">
+          <div className="majestic-arabic majestic-arabic-center mx-auto text-6xl sm:text-7xl" aria-label="Arabic language">العَرَبِيَّة</div>
+          <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Welcome back — {overall}% of the course complete</h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-sand/60">
+            {due.length > 0
+              ? `${due.length} item${due.length > 1 ? "s are" : " is"} due for spaced-repetition review today.`
+              : "Nothing due for review — perfect time to open a new module."}
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button onClick={() => navigate(due.length ? "/review" : "/cognates")}>
+              {due.length ? `Review ${due.length} item${due.length > 1 ? "s" : ""}` : "Continue learning →"}
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/badges")}>🏅 {user.badges.length}/10 badges</Button>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-2xl border border-gold/25 bg-black/25 px-4 py-3">
-              <div className="text-2xl font-extrabold text-gold">{user.xp}</div><div className="text-[10px] uppercase tracking-widest text-sand/50">XP</div>
-            </div>
-            <div className="rounded-2xl border border-gold/25 bg-black/25 px-4 py-3">
-              <div className="text-2xl font-extrabold">🔥{user.streak}</div><div className="text-[10px] uppercase tracking-widest text-sand/50">streak</div>
-            </div>
-            <div className="rounded-2xl border border-gold/25 bg-black/25 px-4 py-3">
-              <div className="text-2xl font-extrabold">{lv.level}</div><div className="text-[10px] uppercase tracking-widest text-sand/50">level</div>
+          <div className="mt-6 flex justify-center">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-2xl border border-gold/25 bg-black/25 px-4 py-3">
+                <div className="text-2xl font-extrabold text-gold">{user.xp}</div><div className="text-[10px] uppercase tracking-widest text-sand/50">XP</div>
+              </div>
+              <div className="rounded-2xl border border-gold/25 bg-black/25 px-4 py-3">
+                <div className="text-2xl font-extrabold">🔥{user.streak}</div><div className="text-[10px] uppercase tracking-widest text-sand/50">streak</div>
+              </div>
+              <div className="rounded-2xl border border-gold/25 bg-black/25 px-4 py-3">
+                <div className="text-2xl font-extrabold">{lv.level}</div><div className="text-[10px] uppercase tracking-widest text-sand/50">level</div>
+              </div>
             </div>
           </div>
         </div>

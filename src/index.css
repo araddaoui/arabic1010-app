@@ -75,11 +75,27 @@ body {
   font-family: var(--font-arabic);
   font-weight: 700;
   letter-spacing: 0.025em;
+  line-height: 1.35;
+  background: linear-gradient(180deg, #fff8cf 0%, #ffdf72 48%, #c9a227 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-shadow:
     0 0 4px rgba(255, 240, 168, 0.85),
     0 0 14px rgba(255, 211, 84, 0.7),
     0 0 32px rgba(201, 162, 39, 0.45);
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.42));
+}
+
+.majestic-arabic-center {
+  text-align: center;
+  white-space: nowrap;
+  animation: majestic-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes majestic-breathe {
+  0%, 100% { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.42)); }
+  50% { filter: drop-shadow(0 3px 10px rgba(255, 211, 84, 0.42)); }
 }
 
 .ar-c {

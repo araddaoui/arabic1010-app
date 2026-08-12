@@ -31,6 +31,7 @@ export default function Auth() {
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-gold to-maroon text-xl font-black text-ink">ع</span>
               <span className="text-lg font-extrabold">Arabic<span className="text-gold">1010</span></span>
+              <span className="ar majestic-arabic ml-auto text-2xl" aria-label="Arabic language">العَرَبِيَّة</span>
             </div>
             <h1 className="mt-8 text-3xl font-extrabold leading-tight">
               Modern Standard Arabic,<br />made for every learner.
@@ -39,7 +40,10 @@ export default function Auth() {
               Cognates that prove you already know Arabic · 28 letters with handwriting feedback · numbers, vocabulary, real dialogue and the whole Arab world map.
             </p>
           </div>
-          <div className="ar mt-8 text-2xl text-gold/80">أَهْلاً وَسَهْلاً بِكُم</div>
+          <div className="mt-8 flex flex-col items-center text-center">
+            <div className="majestic-arabic majestic-arabic-center text-4xl sm:text-5xl" aria-label="Welcome to Arabic">أَهْلاً وَسَهْلاً بِكُم</div>
+            <div className="mt-1 text-4xl" role="img" aria-label="Two hands of different skin tones shaking hands">🫱🏻‍🫲🏿</div>
+          </div>
           <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs text-sand/50">
             <div><div className="text-lg font-bold text-gold">7</div>modules</div>
             <div><div className="text-lg font-bold text-gold">281</div>audio files</div>
