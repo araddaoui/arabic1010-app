@@ -1,15 +1,13 @@
-# Arabic1010 Privacy Policy
-
-**Draft — review with qualified legal counsel before public launch**  
-**Effective date:** [Insert effective date]  
-**Operator:** [Insert your legal name or entity] ("Arabic1010," "we," "us," or "our")  
-**Contact:** contact@arabic1010.app
+**Privacy Policy — Arabic1010**
+**Effective date:** August 12, 2026
+**Operator:** Arabic1010 ("we," "us," or "our")
+**Contact:** contact@arabic1010.com
 
 This Privacy Policy explains how Arabic1010 handles information when you use the Arabic1010 website and learning application (the "Service"). It is written for the current client-side release and should be updated if the technical architecture changes.
 
 ## 1. Summary
 
-Arabic1010 is designed as a client-side learning application. In the current release, learner progress, demo-account information, settings, and feedback may be stored in your browser’s local storage rather than sent to an Arabic1010 application database. Clearing browser storage, changing browsers, using private browsing, or resetting a device may remove that information.
+Arabic1010 is designed as a client-side learning application. In the current release, learner progress, demo-account information, settings, and feedback may be stored in your browser’s local storage rather than sent to a central Arabic1010 application database. Clearing browser storage, changing browsers, using private browsing, or resetting a device may remove that information.
 
 The current release does not intentionally send ordinary learner progress to an Arabic1010 server. However, the website’s hosting provider, browser, device, network, email provider, and other third parties may process technical information as part of delivering their services. Review their own privacy policies for details.
 
@@ -21,7 +19,7 @@ Depending on how you use the Service, you may provide:
 - learner progress, completed activities, review history, settings, and preferences;
 - feedback or comments entered into the application;
 - information you choose to include when you open an email draft or contact us; and
-- information you voluntarily provide in correspondence with the Operator.
+- information you voluntarily provide in correspondence with Arabic1010.
 
 Do not submit sensitive personal information, passwords used for other services, payment-card details, government identifiers, health information, or confidential information through the Service or contact form unless we expressly request it through a secure channel.
 
@@ -46,7 +44,7 @@ Because this information may remain only on your device, Arabic1010 may be unabl
 
 ## 5. Contact form and email
 
-The current contact experience is designed to open an email draft using your device’s email application. It is not a server-side submission system unless a future version expressly says otherwise. When you send an email, the message and its metadata are processed by your email provider and may be received and retained by the Operator or its support provider.
+The current contact experience is designed to open an email draft using your device’s email application. It is not a server-side submission system unless a future version expressly says otherwise. When you send an email, the message and its metadata are processed by your email provider and may be received and retained by Arabic1010 or its support provider.
 
 Please avoid including sensitive information. We may retain correspondence for as long as reasonably necessary to respond, maintain records, resolve disputes, protect the Service, and comply with law.
 
@@ -66,7 +64,7 @@ We do not intentionally operate advertising trackers or sell technical logs thro
 
 Arabic1010 may be useful to learners of different ages. The Service is not designed to require a child to provide personal information to an Arabic1010 server in the current release. Parents and guardians should supervise children’s use, review what they enter, and help them decide whether to send any email or other communication.
 
-If you believe a child has provided personal information to us, contact us at **contact@arabic1010.app** so we can assess the request and take appropriate action. The legal rules that apply to children vary by location; counsel should review the final age and consent language before launch.
+If you believe a child has provided personal information to us, contact us at **contact@arabic1010.com** so we can assess the request and take appropriate action.
 
 ## 9. Sharing and disclosure
 
@@ -75,7 +73,7 @@ We may disclose information:
 - to service providers that host, secure, maintain, or support the Service;
 - when you ask us to send or share information;
 - to comply with law, legal process, or a valid governmental request;
-- to protect the rights, safety, security, and property of users, the Operator, or others; or
+- to protect the rights, safety, security, and property of users, Arabic1010, or others; or
 - in connection with a merger, acquisition, financing, restructuring, sale of assets, or similar transaction, subject to applicable law.
 
 We do not authorize third parties to use learner information for their own advertising merely because they provide infrastructure services to Arabic1010.
@@ -84,7 +82,7 @@ We do not authorize third parties to use learner information for their own adver
 
 Local browser data is retained until you delete it, it expires, or it is overwritten. Correspondence and support information may be retained for as long as reasonably necessary for the purposes described above. Technical logs may be retained by hosting and infrastructure providers under their own policies.
 
-To request deletion of information that we can reasonably identify and control, contact **contact@arabic1010.app**. We may need to verify the request and may retain information where permitted or required by law, including for security, fraud prevention, dispute resolution, or legal compliance.
+To request deletion of information that we can reasonably identify and control, contact **contact@arabic1010.com**. We may need to verify the request and may retain information where permitted or required by law, including for security, fraud prevention, dispute resolution, or legal compliance.
 
 ## 11. Security
 
@@ -93,8 +91,6 @@ We use reasonable measures appropriate to this type of client-side release, but 
 ## 12. International use and rights
 
 The Service may be accessed from different countries, and technical providers may process information in locations outside your country. Depending on where you live, you may have rights to access, correct, delete, restrict, object to, or receive a copy of certain personal information, or to withdraw consent where processing relies on consent. Contact us first, and you may also have the right to complain to a data-protection authority.
-
-The scope and procedure for these rights vary by jurisdiction. **Before publication, have counsel add any required jurisdiction-specific notices, including California, European/UK, Canadian, Australian, or other applicable provisions.**
 
 ## 13. Third-party links and services
 
@@ -106,12 +102,9 @@ We may update this Policy when the Service, the law, or our data practices chang
 
 ## 15. Contact
 
-Privacy questions, requests, and concerns may be sent to **contact@arabic1010.app**. Replace this address if you use a different official support address.
+Privacy questions, requests, and concerns may be sent to **contact@arabic1010.com**.
 
 ---
 
-**Important launch note:** This is a working draft for review, not formal legal advice. Confirm the Operator’s legal name and address, actual hosting and email providers, cookie and analytics practices, age/consent obligations, data-rights procedures, retention periods, cross-border disclosures, and contact details before publication.
-
-_Last updated: [Insert date]_ 
-
-© [Insert year] [Insert legal name or entity]. All rights reserved.
+_Last updated: August 12, 2026_
+© 2026 Arabic1010. All rights reserved.

@@ -1,15 +1,13 @@
-# Arabic1010 Terms of Service
-
-**Draft — review with qualified legal counsel before public launch**  
-**Effective date:** [Insert effective date]  
-**Operator:** [Insert your legal name or entity] ("Arabic1010," "we," "us," or "our")  
-**Contact:** contact@arabic1010.app
+**Terms of Service — Arabic1010**
+**Effective date:** August 12, 2026
+**Operator:** Arabic1010 ("we," "us," or "our")
+**Contact:** contact@arabic1010.com
 
 These Terms of Service ("Terms") govern access to and use of the Arabic1010 website and learning application (the "Service"). By accessing or using the Service, you agree to these Terms. If you do not agree, do not use the Service.
 
 ## 1. The Service
 
-Arabic1010 is an educational application for learning Modern Standard Arabic. It may provide lessons, exercises, audio, pronunciation practice, handwriting activities, typing practice, cultural and geographic material, progress tracking, demonstrations, and related features.
+Arabic1010 is an educational application for learning Modern Standard Arabic. It provides lessons, exercises, native-speaker audio, pronunciation practice, handwriting activities, typing practice, cultural and geographic material, progress tracking, demonstrations, and related features.
 
 The Service is provided for educational and informational purposes. It is not a school, accredited academic program, tutoring relationship, translation service, immigration service, legal service, medical service, or guarantee of language proficiency. Learning results vary by learner, time, practice, and other circumstances.
 
@@ -19,7 +17,7 @@ You may use the Service only if you can legally agree to these Terms. If you are
 
 ## 3. Accounts and local data
 
-This release is primarily client-side. Depending on the build, account credentials, learner progress, feedback, and settings may be stored locally in the browser rather than in an operator-controlled account database. You are responsible for maintaining access to your device and browser and for understanding that clearing browser storage, changing browsers, or using private browsing may remove locally stored information.
+This release is primarily client-side. Account credentials, learner progress, feedback, and settings may be stored locally in your browser rather than in a central operator database. You are responsible for maintaining access to your device and browser and for understanding that clearing browser storage, changing browsers, or using private browsing may remove locally stored information.
 
 You must provide accurate information when the Service asks for information, keep any credentials confidential, and notify us if you believe an account or device has been used without authorization. We may refuse, suspend, or terminate access where necessary to protect the Service, its users, or third parties.
 
@@ -42,7 +40,7 @@ Native-speaker audio, speech-recognition features, browser speech features, and 
 
 ## 6. Intellectual property
 
-The Service, including its design, software, text, illustrations, audio, graphics, logos, arrangement, and original learning materials, is owned by or licensed to the Operator and is protected by intellectual-property laws. Subject to these Terms, we grant you a limited, personal, non-exclusive, non-transferable, revocable license to use the Service for personal educational purposes.
+The Service, including its design, software, text, illustrations, audio, graphics, logos, arrangement, and original learning materials, is owned by or licensed to Arabic1010 and is protected by intellectual-property laws. Subject to these Terms, we grant you a limited, personal, non-exclusive, non-transferable, revocable license to use the Service for personal educational purposes.
 
 You retain ownership of material that you independently submit, where applicable. By submitting suggestions, comments, or feedback, you grant us a worldwide, royalty-free, perpetual, irrevocable, sublicensable right to use, reproduce, modify, and incorporate that feedback for operating or improving the Service, without compensation or attribution unless required by law.
 
@@ -62,13 +60,13 @@ Nothing in these Terms excludes a warranty or right that cannot lawfully be excl
 
 ## 10. Limitation of liability
 
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE OPERATOR AND ITS OWNERS, CONTRIBUTORS, LICENSORS, SERVICE PROVIDERS, AND AFFILIATES WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR LOSS OF DATA, PROFITS, GOODWILL, OR BUSINESS, ARISING FROM OR RELATED TO THE SERVICE OR THESE TERMS.
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, ARABIC1010 AND ITS OPERATORS, CONTRIBUTORS, LICENSORS, SERVICE PROVIDERS, AND AFFILIATES WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR LOSS OF DATA, PROFITS, GOODWILL, OR BUSINESS, ARISING FROM OR RELATED TO THE SERVICE OR THESE TERMS.
 
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE TOTAL LIABILITY OF THE OPERATOR FOR ALL CLAIMS ARISING FROM OR RELATED TO THE SERVICE OR THESE TERMS WILL NOT EXCEED THE GREATER OF (A) THE AMOUNTS YOU PAID TO THE OPERATOR FOR THE SERVICE DURING THE SIX MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM OR (B) 100 U.S. DOLLARS. Some jurisdictions do not permit certain limitations, so some portions may not apply to you.
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE TOTAL LIABILITY OF ARABIC1010 FOR ALL CLAIMS ARISING FROM OR RELATED TO THE SERVICE OR THESE TERMS WILL NOT EXCEED THE GREATER OF (A) THE AMOUNTS YOU PAID TO US FOR THE SERVICE DURING THE SIX MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM OR (B) 100 U.S. DOLLARS. Some jurisdictions do not permit certain limitations, so some portions may not apply to you.
 
 ## 11. Indemnification
 
-To the maximum extent permitted by law, you agree to defend, indemnify, and hold harmless the Operator and its owners, contributors, licensors, service providers, and affiliates from claims, liabilities, damages, losses, costs, and expenses, including reasonable legal fees, arising from your misuse of the Service, violation of these Terms, violation of another person’s rights, or violation of applicable law.
+To the maximum extent permitted by law, you agree to defend, indemnify, and hold harmless Arabic1010 and its operators, contributors, licensors, service providers, and affiliates from claims, liabilities, damages, losses, costs, and expenses, including reasonable legal fees, arising from your misuse of the Service, violation of these Terms, violation of another person’s rights, or violation of applicable law.
 
 ## 12. Termination
 
@@ -76,7 +74,7 @@ You may stop using the Service at any time. We may suspend or terminate access, 
 
 ## 13. Governing law and disputes
 
-**Before publication, replace this section with the jurisdiction and dispute process selected by your attorney.** Unless prohibited by applicable law, these Terms will be governed by the laws of [insert jurisdiction], without regard to conflict-of-law principles. Disputes will be resolved in the courts located in [insert venue], unless the parties agree to another lawful process.
+Unless prohibited by applicable law, these Terms will be governed by the laws of the State of Delaware, United States, without regard to conflict-of-law principles. Disputes will be resolved in the state or federal courts located in Delaware, unless the parties agree to another lawful process.
 
 ## 14. Changes to these Terms
 
@@ -84,12 +82,9 @@ We may update these Terms from time to time. The updated version will be posted 
 
 ## 15. Contact
 
-Questions about these Terms may be sent to **contact@arabic1010.app**. Replace this address if you use a different official support address.
+Questions about these Terms may be sent to **contact@arabic1010.com**.
 
 ---
 
-**Important launch note:** This is a working draft for review, not a substitute for advice from a qualified lawyer. Confirm the Operator’s legal name, address, jurisdiction, dispute process, consumer rights, age rules, subscription terms, and contact details before publication.
-
-_Last updated: [Insert date]_ 
-
-© [Insert year] [Insert legal name or entity]. All rights reserved.
+_Last updated: August 12, 2026_
+© 2026 Arabic1010. All rights reserved.

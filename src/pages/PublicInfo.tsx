@@ -5,7 +5,7 @@ import privacy from "../../PRIVACY_POLICY.md?raw";
 
 type PublicPath = "/terms" | "/privacy" | "/contact";
 
-const CONTACT_EMAIL = "contact@arabic1010.app";
+const CONTACT_EMAIL = "contact@arabic1010.com";
 
 function go(path: string) {
   window.location.hash = path;
