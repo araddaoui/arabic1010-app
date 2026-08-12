@@ -48,7 +48,11 @@ export default function Auth() {
           </div>
           <div className="mt-8 flex flex-col items-center text-center">
             <div className="majestic-arabic majestic-arabic-center text-4xl sm:text-5xl" aria-label="Welcome to Arabic">أَهْلاً وَسَهْلاً بِكُم</div>
-            <div className="mt-1 text-4xl" role="img" aria-label="Two hands of different skin tones shaking hands">🫱🏻‍🫲🏿</div>
+            <img
+              className="mt-2 h-auto w-36 object-contain drop-shadow-[0_0_22px_rgba(239,191,66,0.28)] sm:w-44"
+              src="/arabic1010-four-hands.png"
+              alt="Four welcoming hands with different skin tones meeting in unity"
+            />
           </div>
           <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs text-sand/50">
             <div><div className="text-lg font-bold text-gold">7</div>modules</div>
