@@ -34,10 +34,10 @@ export default function Auth() {
               <span className="ar majestic-arabic ml-auto text-2xl" aria-label="Arabic language">العَرَبِيَّة</span>
             </div>
             <h1 className="mt-8 text-3xl font-extrabold leading-tight">
-              Modern Standard Arabic,<br />made for every learner.
+              Modern Standard Arabic<br />for every learner.
             </h1>
             <p className="mt-3 text-sm text-sand/60">
-              Cognates that prove you already know Arabic · 28 letters with handwriting feedback · numbers, vocabulary, real dialogue and the whole Arab world map.
+              Cognates that prove you already know Arabic · letters with handwriting and typing practice · native pronouncing, numbers, vocabulary, real dialogue and the whole Arab world map.
             </p>
           </div>
           <div className="mt-8 flex flex-col items-center text-center">
