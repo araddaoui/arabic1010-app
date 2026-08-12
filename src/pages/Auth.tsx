@@ -4,9 +4,8 @@ import { Button } from "@/components/ui";
 import { useApp } from "@/lib/store";
 
 export default function Auth() {
-  const { signIn, signUp } = useApp();
-  const [mode, setMode] = useState<"in" | "up">("in");
-  const [name, setName] = useState("");
+  const { signIn } = useApp();
+  const [mode, setMode] = useState<"in" | "soon">("in");
   const [email, setEmail] = useState("learner@arabic1010.app");
   const [password, setPassword] = useState("arabic1010");
   const [err, setErr] = useState<string | null>(null);
@@ -16,7 +15,7 @@ export default function Auth() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const msg = mode === "in" ? await signIn(email, password) : await signUp(name, email, password);
+    const msg = await signIn(email, password);
     setErr(msg); setBusy(false);
   };
 
@@ -53,26 +52,35 @@ export default function Auth() {
 
         <div className="p-8">
           <div className="mb-6 flex rounded-xl bg-black/25 p-1">
-            {(["in", "up"] as const).map((m) => (
-              <button key={m} onClick={() => { setMode(m); setErr(null); }}
-                className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${mode === m ? "bg-gold text-ink" : "text-sand/60"}`}>
-                {m === "in" ? "Sign in" : "Create account"}
-              </button>
-            ))}
+            <button onClick={() => { setMode("in"); setErr(null); }}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${mode === "in" ? "bg-gold text-ink" : "text-sand/60"}`}>
+              Sign in
+            </button>
+            <button onClick={() => { setMode("soon"); setErr(null); }}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${mode === "soon" ? "bg-gold text-ink" : "text-sand/60"}`}>
+              Create account — coming soon
+            </button>
           </div>
 
-          <form onSubmit={submit} className="space-y-3">
-            {mode === "up" && (
-              <input className={input} placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
-            )}
-            <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input className={input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            {mode === "up" && <p className="text-[11px] text-sand/40">Passwords are checked against known breach lists (leaked-password protection enabled).</p>}
-            {err && <div className="rounded-lg border border-err/50 bg-err/15 p-3 text-xs text-red-200">{err}</div>}
-            <Button type="submit" className="w-full" size="lg" disabled={busy}>
-              {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create my account"}
-            </Button>
-          </form>
+          {mode === "in" ? (
+            <form onSubmit={submit} className="space-y-3">
+              <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <input className={input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              {err && <div className="rounded-lg border border-err/50 bg-err/15 p-3 text-xs text-red-200">{err}</div>}
+              <Button type="submit" className="w-full" size="lg" disabled={busy}>
+                {busy ? "Please wait…" : "Sign in"}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-3 rounded-xl border border-gold/25 bg-gold/5 p-4 text-center">
+              <div className="majestic-arabic text-3xl" aria-label="Coming soon">قريباً</div>
+              <h2 className="text-base font-bold text-sand">Secure learner accounts are coming soon.</h2>
+              <p className="text-xs leading-relaxed text-sand/55">We are preparing a simple email-and-password account system with secure progress storage. Until then, the Preview account is the complete way to explore the learning experience.</p>
+              <Button type="button" className="w-full" onClick={() => { setMode("in"); setShowDemo(true); }}>
+                Try the Preview
+              </Button>
+            </div>
+          )}
 
           <div className="my-4 flex items-center gap-3 text-xs text-sand/30">
             <span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" />
@@ -81,10 +89,10 @@ export default function Auth() {
           {/* Demo mode — clearly labelled, no pretence of real Google OAuth */}
           <Button
             variant="ghost"
-            className="w-full"
+            className="w-full border border-gold/30 bg-gold/10 text-gold hover:bg-gold/20"
             onClick={() => setShowDemo((s) => !s)}
           >
-            🎓 Try a demo account
+            🎓 Try the Preview
           </Button>
 
           {showDemo && (
@@ -93,10 +101,9 @@ export default function Auth() {
               animate={{ opacity: 1, height: "auto" }}
               className="mt-3 space-y-2 rounded-xl border border-gold/20 bg-black/20 p-3 text-[11px] text-sand/60"
             >
-              <div className="font-semibold text-sand/80">Demo accounts — pre-loaded with sample progress</div>
+              <div className="font-semibold text-sand/80">Preview account — pre-loaded with representative progress</div>
               <p className="text-sand/45">
-                These are local accounts stored in your browser. Data resets if you clear
-                browser storage. No real Google login is available in this release.
+                This preview is maintained as a permanent tour of the course. Progress is stored locally in your browser and resets if browser storage is cleared. No real account is created.
               </p>
               <button
                 className="mt-2 w-full rounded-lg border border-gold/30 bg-gold/10 py-2 text-xs font-semibold text-gold hover:bg-gold/20 transition"
@@ -126,8 +133,8 @@ export default function Auth() {
             </motion.div>
           )}
 
-          <p className="mt-4 text-center text-[10px] text-sand/30">
-            Arabic1010 · progress saved locally · no data sent to any server in this release
+          <p className="mt-4 text-center text-[10px] leading-relaxed text-sand/30">
+            By continuing, you acknowledge the <a href="#/terms" className="text-sand/55 underline decoration-gold/40 underline-offset-2 hover:text-gold">Terms of Service</a> and <a href="#/privacy" className="text-sand/55 underline decoration-gold/40 underline-offset-2 hover:text-gold">Privacy Policy</a>. Preview progress is saved locally; secure learner accounts are not yet available.
           </p>
         </div>
       </motion.div>
