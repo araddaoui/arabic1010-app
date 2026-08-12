@@ -42,7 +42,7 @@ Native-speaker audio, speech-recognition features, browser speech features, and 
 
 The Service, including its design, software, text, illustrations, audio, graphics, logos, arrangement, and original learning materials, is owned by or licensed to Arabic1010 and is protected by intellectual-property laws. Subject to these Terms, we grant you a limited, personal, non-exclusive, non-transferable, revocable license to use the Service for personal educational purposes.
 
-You retain ownership of material that you independently submit, where applicable. By submitting suggestions, comments, or feedback, you grant us a worldwide, royalty-free, perpetual, irrevocable, sublicensable right to use, reproduce, modify, and incorporate that feedback for operating or improving the Service, without compensation or attribution unless required by law.
+You retain ownership of material that you independently submit, where applicable. By submitting suggestions, comments, or feedback, you grant us a perpetual, non-exclusive, royalty-free right to use, reproduce, and incorporate that feedback for operating or improving the Service. This license may be terminated by us if we cease operation of the Service.
 
 ## 7. Third-party services and links
 
@@ -72,15 +72,19 @@ To the maximum extent permitted by law, you agree to defend, indemnify, and hold
 
 You may stop using the Service at any time. We may suspend or terminate access, remove content, or discontinue the Service if we reasonably believe that you violated these Terms, created risk, or used the Service unlawfully, or where otherwise necessary for operational or legal reasons. Sections that by their nature should survive termination will survive, including intellectual property, disclaimers, limitation of liability, indemnification, and governing-law provisions.
 
-## 13. Governing law and disputes
+## 13. Force Majeure
 
-Unless prohibited by applicable law, these Terms will be governed by the laws of the State of Delaware, United States, without regard to conflict-of-law principles. Disputes will be resolved in the state or federal courts located in Delaware, unless the parties agree to another lawful process.
+We will not be liable for delays or failures in performance resulting from causes beyond our reasonable control, including but not limited to acts of God, war, terrorism, pandemics, government action, labor disputes, network failures, power outages, third-party hosting or service-provider outages, cyberattacks, or failures of third-party infrastructure, including browser, operating system, CDN, and speech engine providers. Performance obligations are suspended during such events.
 
-## 14. Changes to these Terms
+## 14. Governing law and disputes
+
+For users located in jurisdictions that prohibit exclusive choice-of-law or forum-selection clauses, local law and venue will apply to the extent required by law. For all other users, Delaware law and courts govern.
+
+## 15. Changes to these Terms
 
 We may update these Terms from time to time. The updated version will be posted through the Service with a revised effective date. Your continued use after an update becomes effective constitutes acceptance of the updated Terms, to the extent permitted by law.
 
-## 15. Contact
+## 16. Contact
 
 Questions about these Terms may be sent to **contact@arabic1010.com**.
 

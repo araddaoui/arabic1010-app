@@ -107,9 +107,7 @@ function LegalDocument({ title, subtitle, content }: { title: string; subtitle: 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       <Header title={title} subtitle={subtitle} />
-      <div className="rounded-2xl border border-warn/30 bg-warn/10 px-4 py-3 text-xs leading-6 text-sand/75">
-        <strong className="text-warn">Launch review notice:</strong> This is a working draft prepared for the current client-only release. Have a qualified lawyer review the operator details, jurisdiction, age/consent rules, and privacy obligations before relying on it publicly.
-      </div>
+
       <Card className="p-6 sm:p-9">
         <DocumentBody markdown={content} />
       </Card>
