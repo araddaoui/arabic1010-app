@@ -337,9 +337,11 @@ export default function HandwritingCanvas({
       <div className="flex flex-wrap items-center gap-2" dir="ltr">
         <Button onClick={check} disabled={!hasInk}>Check my writing</Button>
         <Button variant="ghost" onClick={clear}>Clear</Button>
-        <Button variant="ghost" onClick={replayWatch}>
-          ▶ Watch it write
-        </Button>
+        {svgLoaded && (
+          <Button variant="ghost" onClick={replayWatch}>
+            ▶ Watch it write
+          </Button>
+        )}
         <Button variant="ghost" onClick={() => setShowOverlay((s) => !s)} disabled={!hasInk}>
           {showOverlay ? "Hide model overlay" : "Overlay model"}
         </Button>
