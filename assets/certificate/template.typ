@@ -11,9 +11,9 @@
   size: 12pt,
 )
 
-// Background Watermark Motif (Raised to Header Level and Enlarged)
-#place(center + top, dy: 0cm)[
-  #text(size: 720pt, fill: rgb("#C9A227").transparentize(95%), font: "Noto Naskh Arabic")[ع]
+// Background Watermark Motif (Full Vertical Presence)
+#place(center + horizon, dy: 0cm)[
+  #text(size: 780pt, fill: rgb("#C9A227").transparentize(96%), font: "Noto Naskh Arabic")[ع]
 ]
 
 // Elegant Frame
@@ -35,48 +35,50 @@
     inset: 1.2cm,
   )[
     #align(center)[
-      #v(0.1cm)
+      #v(-0.2cm) // Raised Header
       
       // Header Branding
       #text(size: 34pt, fill: rgb("#1A1A2E"), weight: "black")[
         ARABIC#text(fill: rgb("#C9A227"))[1010]
       ]
       
-      #v(0.4cm)
+      #v(0.2cm) // Proportionately raised
       
       // Synchronized Bilingual Titles
       #text(size: 26pt, fill: rgb("#1A1A2E"), weight: "bold", font: "Noto Naskh Arabic")[
         شَهَادَةُ الكَفَاءَةِ التَّأْسِيسِيَّةِ فِي الثَّقَافَةِ العَرَبِيَّةِ الرَّقْمِيَّةِ
       ]
       
-      #v(0.15cm)
+      #v(0.1cm) // Proportionately raised
       
       #text(size: 18pt, style: "italic", weight: "bold", fill: rgb("#1A1A2E"))[
         Certificate of Foundational Competence in Digital Arabic Literacy
       ]
       
-      #v(0.1cm)
+      #v(0.05cm) // Proportionately raised
       
       #text(size: 13pt, weight: "bold", fill: rgb("#C9A227"))[
         (Level 1 / المُسْتَوَى الأَوَّل)
       ]
       
-      #v(0.4cm) 
+      #v(0.3cm) // Proportionately raised
       
       #text(size: 15pt, weight: "medium")[This is to certify that]
       
-      #v(0.2cm)
+      #v(0.15cm) // Proportionately raised
       
-      // The Hero Section: Student Name
+      // The Hero Section: Student Name (Shifted Left)
+      #h(-4cm)
       #text(size: 44pt, weight: "black", fill: rgb("#7B2020"))[
         ARABIC LEARNER
       ]
       
-      #v(0.3cm)
+      #v(0.25cm) // Proportionately raised
       
+      #h(-4cm)
       #line(length: 55%, stroke: 2pt + rgb("#C9A227"))
       
-      #v(0.4cm)
+      #v(1.0cm) // Increased space to keep curriculum text where it was
       
       #block(width: 80%)[
         #set par(leading: 0.9em)
@@ -88,9 +90,9 @@
   ]
 ]
 
-// Footer Elements: Absolute Positioning
-// Date Section (Bottom Center)
-#place(bottom + center, dy: -3.8cm)[
+// Footer Elements: Absolute Positioning with Radical Elevation
+// Date Section (Bottom Center - Maintained at -5.0cm)
+#place(bottom + center, dy: -5.0cm)[
   #stack(dir: ttb, spacing: 0.3cm,
     text(size: 10pt, fill: rgb("#1A1A2E").lighten(30%), weight: "bold")[DATE OF ISSUANCE],
     text(size: 14pt, weight: "bold")[August 21, 2026],
@@ -98,8 +100,8 @@
   )
 ]
 
-// Official Seal with Ribbon (Bottom Left)
-#place(bottom + left, dx: 0.5cm, dy: -3.5cm)[
+// Official Seal with Ribbon (Bottom Left - Maintained at -4.8cm)
+#place(bottom + left, dx: 0.5cm, dy: -4.8cm)[
   #stack(dir: ttb, spacing: -1.2cm,
     // The Ribbon
     align(center)[
@@ -128,8 +130,8 @@
   )
 ]
 
-// Signature Section (Bottom Right)
-#place(bottom + right, dx: -0.5cm, dy: -3.8cm)[
+// Signature Section (Bottom Right - Maintained at -5.0cm)
+#place(bottom + right, dx: -0.5cm, dy: -5.0cm)[
   #stack(dir: ttb, spacing: 0.5cm,
     text(size: 26pt, font: "Noto Naskh Arabic", fill: rgb("#1A1A2E"), weight: "bold")[د. علي الهاشمي رداوي],
     text(size: 20pt, font: "Libertinus Serif", style: "italic", weight: "bold", fill: rgb("#1A1A2E"))[Dr. Ali H. Raddaoui],
@@ -138,7 +140,7 @@
   )
 ]
 
-// Credential ID (Very Bottom - Moved further down to prevent overlap)
+// Credential ID (Very Bottom)
 #place(bottom + center, dy: -0.5cm)[
   #text(size: 9pt, fill: rgb("#1A1A2E").lighten(50%), weight: "bold")[
     Credential ID: A1010-8829-XL02-2026 #h(1cm) Verify authenticity at: arabic1010.com/verify

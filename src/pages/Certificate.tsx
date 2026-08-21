@@ -34,9 +34,9 @@ export default function Certificate() {
         {/* Inner Gold Border */}
         <div className="h-full w-full border-2 border-[#C9A227] p-12 text-center relative">
           
-          {/* Watermark Ayn (Raised to top) */}
-          <div className="absolute inset-x-0 top-0 flex items-start justify-center pointer-events-none opacity-[0.04] overflow-hidden">
-            <div className="ar-c text-[1000px] leading-none select-none text-[#C9A227] -mt-20">ع</div>
+          {/* Watermark Ayn (Full Vertical Majesty) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] overflow-hidden">
+            <div className="ar-c text-[1200px] leading-none select-none text-[#C9A227]">ع</div>
           </div>
 
           {/* Seal & Ribbon */}
@@ -56,26 +56,26 @@ export default function Certificate() {
             </div>
           </div>
 
-          {/* Header */}
-          <div className="relative z-10">
+          {/* Header (Raised proportionately) */}
+          <div className="relative z-10 -mt-4">
             <div className="text-4xl font-black tracking-tighter">ARABIC<span className="text-[#C9A227]">1010</span></div>
             
-            <div className="mt-8 ar text-4xl font-bold leading-relaxed">
+            <div className="mt-4 ar text-4xl font-bold leading-relaxed">
               شَهَادَةُ الكَفَاءَةِ التَّأْسِيسِيَّةِ فِي الثَّقَافَةِ العَرَبِيَّةِ الرَّقْمِيَّةِ
             </div>
             <div className="ar text-xl text-[#C9A227] mt-1">(المُسْتَوَى الأَوَّل)</div>
             
-            <div className="mt-4 text-xl italic font-serif">
+            <div className="mt-2 text-xl italic font-serif">
               Certificate of Foundational Competence in Digital Arabic Literacy
             </div>
             <div className="text-sm font-bold text-[#C9A227] mt-1">(Level 1)</div>
 
-            <div className="mt-12 text-lg">This is to certify that</div>
-            <div className="mt-4 text-5xl font-black text-[#7B2020] uppercase tracking-wide">{user.name || "ARABIC LEARNER"}</div>
+            <div className="mt-8 text-lg">This is to certify that</div>
+            <div className="mt-2 text-5xl font-black text-[#7B2020] uppercase tracking-wide text-left ml-20">{user.name || "ARABIC LEARNER"}</div>
             
-            <div className="mx-auto mt-6 w-64 border-t-2 border-[#C9A227]"></div>
+            <div className="ml-20 mt-4 w-64 border-t-2 border-[#C9A227]"></div>
             
-            <div className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed font-medium">
+            <div className="mx-auto mt-16 max-w-2xl text-lg leading-relaxed font-medium">
               has successfully completed the foundational curriculum of Arabic1010, demonstrating competence in Arabic orthography, phonology, and digital register awareness at a Level 1 proficiency.
             </div>
 
