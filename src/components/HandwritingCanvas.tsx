@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button, Chip } from "@/components/ui";
 import { cn } from "@/utils/cn";
+import { vowelForm, type VowelKey } from "@/data/letters";
 import { LETTER_SVGS, prepareSvg } from "@/data/letterAnimations";
 import { LETTER_SVG_OVERRIDES } from "@/data/letterAnimationOverrides";
 
@@ -101,6 +102,7 @@ export default function HandwritingCanvas({
   const [hasInk, setHasInk] = useState(false);
   const [result, setResult] = useState<{ score: number; dotsOk: boolean; missing: number } | null>(null);
   const [showOverlay, setShowOverlay] = useState(false);
+  const [activeVowel, setActiveVowel] = useState<VowelKey>("long_alif");
 
   // SVG animation state
   const [svgContent, setSvgContent] = useState<string | null>(null);
@@ -248,18 +250,23 @@ export default function HandwritingCanvas({
             <line x1="0" y1="200" x2="300" y2="200" stroke="rgba(201,162,39,.25)" strokeDasharray="6 6" />
             <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(201,162,39,.12)" strokeDasharray="6 6" />
 
-            {/* Ghost Medial background showing connection behavior */}
-            <text
-              x="150" y="220"
-              textAnchor="middle"
-              dir="rtl"
-              style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 160 }}
-              fill="rgba(255,213,74,0.06)"
-              stroke="rgba(212,175,55,0.12)"
-              strokeWidth="0.5"
-            >
-              {`ـ${letter}ـ`}
-            </text>
+            {/* Behavior Header at top */}
+            <g opacity="0.4">
+              <text x="150" y="45" textAnchor="middle" fontSize="10" fill="rgba(245,237,214,.5)" fontFamily="Inter" letterSpacing="0.1em">CONNECTION BEHAVIOR</text>
+              <text
+                x="150" y="85"
+                textAnchor="middle"
+                dir="rtl"
+                style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 50 }}
+                fill="#4c7fd0"
+              >
+                {`ـ${letter}ـ`}
+              </text>
+              <text x="150" y="105" textAnchor="middle" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter">reaching out (ـ) before and after</text>
+            </g>
+
+            {/* Isolation Label */}
+            <text x="20" y="180" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter" transform="rotate(-90 20 180)">ISOLATION FORM</text>
 
             {/* Fallback: simple letter display when no SVG animation available */}
             {!svgLoaded && (
@@ -331,21 +338,50 @@ export default function HandwritingCanvas({
         {expectedDots > 0 && <Chip color="#1A3A6B">{expectedDots} dot{expectedDots > 1 ? "s" : ""} required</Chip>}
       </div>
 
-      {/* Syllable Math & Connection Behavior Note */}
-      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
+      {/* Syllable Playground */}
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-4">
         <div className="flex items-center justify-between text-xs text-sand/60">
-          <span>Connection Behavior & Syllable Math</span>
-          <span className="italic text-[11px]">Letters "reach out" (ـ) to join their neighbors</span>
+          <span className="font-bold uppercase tracking-wider">Syllable Playground</span>
+          <span className="italic text-[11px]">See how {letter} joins long vowels</span>
         </div>
+
+        <div className="flex justify-center gap-2">
+          {(["long_alif", "long_waw", "long_ya"] as VowelKey[]).map((v) => (
+            <button
+              key={v}
+              onClick={() => setActiveVowel(v)}
+              className={cn(
+                "h-10 w-12 rounded-lg border text-xl ar transition-all",
+                activeVowel === v
+                  ? "border-gold bg-gold/20 text-gold scale-110 shadow-lg shadow-gold/10"
+                  : "border-white/10 bg-white/5 text-sand/40 hover:bg-white/10"
+              )}
+            >
+              {v === "long_alif" ? "ـا" : v === "long_waw" ? "ـو" : "ـي"}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center justify-center gap-4 py-2" dir="rtl">
-          <div className="flex items-center gap-2 text-2xl">
-            <span className="ar px-3 py-1 rounded-lg bg-white/5 border border-white/10">{letter}</span>
-            <span className="text-sand/40">+</span>
-            <span className="ar px-3 py-1 rounded-lg bg-white/5 border border-white/10">{letter === "ا" ? "آ" : "ا"}</span>
-            <span className="text-sand/40">=</span>
-            <span className="ar px-3 py-1 rounded-lg bg-gold/10 border border-gold/30 text-gold font-bold">
-              {letter === "ا" ? "آ" : letter + "ا"}
-            </span>
+          <div className="flex items-center gap-3 text-3xl">
+            <div className="flex flex-col items-center gap-1">
+              <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">{letter}</span>
+              <span className="text-[10px] text-sand/30 uppercase font-bold">letter</span>
+            </div>
+            <span className="text-sand/20 text-xl">+</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">
+                {activeVowel === "long_alif" ? "ا" : activeVowel === "long_waw" ? "و" : "ي"}
+              </span>
+              <span className="text-[10px] text-sand/30 uppercase font-bold">vowel</span>
+            </div>
+            <span className="text-sand/20 text-xl">➔</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="ar px-6 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold font-bold shadow-lg shadow-gold/5">
+                {vowelForm(letter, activeVowel)}
+              </span>
+              <span className="text-[10px] text-gold/40 uppercase font-bold">syllable</span>
+            </div>
           </div>
         </div>
       </div>
