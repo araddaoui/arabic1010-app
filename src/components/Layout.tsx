@@ -151,6 +151,11 @@ export default function Layout({ path, navigate, children }: { path: string; nav
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>
         <footer className="border-t border-white/5 px-6 py-4 text-center text-xs text-sand/30">
+          <div className="mb-1.5 flex items-center justify-center gap-1.5 font-medium tracking-wide">
+            <span>© 2026 Arabic1010</span>
+            <span className="h-0.5 w-0.5 rounded-full bg-sand/20" />
+            <span>All Rights Reserved</span>
+          </div>
           <div>Arabic1010 · Modern Standard Arabic for beginners · 281 native-speaker audio assets · v2.0</div>
           <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-sand/45">
             <a href="#/terms" className="transition hover:text-gold">Terms of Service</a>

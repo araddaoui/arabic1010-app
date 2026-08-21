@@ -157,10 +157,17 @@ export default function Auth() {
           </p>
         </div>
       </motion.div>
-      <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-sand/45">
-        <a href="#/terms" className="transition hover:text-gold">Terms of Service</a>
-        <a href="#/privacy" className="transition hover:text-gold">Privacy Policy</a>
-        <a href="#/contact" className="transition hover:text-gold">Contact</a>
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-sand/45">
+          <a href="#/terms" className="transition hover:text-gold">Terms of Service</a>
+          <a href="#/privacy" className="transition hover:text-gold">Privacy Policy</a>
+          <a href="#/contact" className="transition hover:text-gold">Contact</a>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-sand/25">
+          <span>© 2026 Arabic1010</span>
+          <span className="h-0.5 w-0.5 rounded-full bg-sand/10" />
+          <span>All Rights Reserved</span>
+        </div>
       </div>
     </div>
   );
