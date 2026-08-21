@@ -259,10 +259,10 @@ export default function HandwritingCanvas({
               <g opacity="0.4">
                 <text x="150" y="45" textAnchor="middle" fontSize="10" fill="rgba(245,237,214,.5)" fontFamily="Inter" letterSpacing="0.1em">CONNECTION BEHAVIOR</text>
                 <text
-                  x="150" y="85"
+                  x="150" y="90"
                   textAnchor="middle"
                   dir="rtl"
-                  style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 50 }}
+                  style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 68 }}
                   fill="#4c7fd0"
                 >
                   {`ـ${letter}ـ`}
@@ -328,7 +328,7 @@ export default function HandwritingCanvas({
         {mode === "copy" && (
           <div className="grid shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[.03]"
             style={{ width: size * zoom * 0.7, height: size * zoom }}>
-            <span className="ar-c" style={{ fontSize: 130 * zoom, lineHeight: 1 }}>{letter}</span>
+            <span className="ar-c" style={{ fontSize: 160 * zoom, lineHeight: 1 }}>{letter}</span>
             <span className="text-[11px] text-sand/40">model</span>
           </div>
         )}
@@ -374,7 +374,7 @@ export default function HandwritingCanvas({
           </div>
 
           <div className="flex items-center justify-center gap-4 py-2" dir="rtl">
-            <div className="flex items-center gap-3 text-3xl">
+            <div className="flex items-center gap-3 text-4xl">
               <div className="flex flex-col items-center gap-1">
                 <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">{letter}</span>
                 <span className="text-[10px] text-sand/30 uppercase font-bold">letter</span>
