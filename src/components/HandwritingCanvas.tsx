@@ -248,6 +248,19 @@ export default function HandwritingCanvas({
             <line x1="0" y1="200" x2="300" y2="200" stroke="rgba(201,162,39,.25)" strokeDasharray="6 6" />
             <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(201,162,39,.12)" strokeDasharray="6 6" />
 
+            {/* Ghost Medial background showing connection behavior */}
+            <text
+              x="150" y="220"
+              textAnchor="middle"
+              dir="rtl"
+              style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 160 }}
+              fill="rgba(255,213,74,0.06)"
+              stroke="rgba(212,175,55,0.12)"
+              strokeWidth="0.5"
+            >
+              {`ـ${letter}ـ`}
+            </text>
+
             {/* Fallback: simple letter display when no SVG animation available */}
             {!svgLoaded && (
               <text
@@ -316,6 +329,25 @@ export default function HandwritingCanvas({
           {showOverlay ? "Hide model overlay" : "Overlay model"}
         </Button>
         {expectedDots > 0 && <Chip color="#1A3A6B">{expectedDots} dot{expectedDots > 1 ? "s" : ""} required</Chip>}
+      </div>
+
+      {/* Syllable Math & Connection Behavior Note */}
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
+        <div className="flex items-center justify-between text-xs text-sand/60">
+          <span>Connection Behavior & Syllable Math</span>
+          <span className="italic text-[11px]">Letters "reach out" (ـ) to join their neighbors</span>
+        </div>
+        <div className="flex items-center justify-center gap-4 py-2" dir="rtl">
+          <div className="flex items-center gap-2 text-2xl">
+            <span className="ar px-3 py-1 rounded-lg bg-white/5 border border-white/10">{letter}</span>
+            <span className="text-sand/40">+</span>
+            <span className="ar px-3 py-1 rounded-lg bg-white/5 border border-white/10">{letter === "ا" ? "آ" : "ا"}</span>
+            <span className="text-sand/40">=</span>
+            <span className="ar px-3 py-1 rounded-lg bg-gold/10 border border-gold/30 text-gold font-bold">
+              {letter === "ا" ? "آ" : letter + "ا"}
+            </span>
+          </div>
+        </div>
       </div>
 
       {result && (
