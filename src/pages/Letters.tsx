@@ -155,8 +155,12 @@ export default function Letters() {
           </div>
         ) : (
           <div className="mt-5">
-            <HandwritingCanvas letter={letter.id} expectedDots={letter.dots}
-              onResult={(_, ok) => ok && award("letters", `${letter.id}_write`, 15)} />
+            <HandwritingCanvas 
+              letter={letter.id} 
+              expectedDots={letter.dots}
+              showPlayground={true}
+              onResult={(_, ok) => ok && award("letters", `${letter.id}_write`, 15)} 
+            />
           </div>
         )}
       </Card>

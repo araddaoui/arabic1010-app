@@ -93,8 +93,8 @@ function dilate(mask: boolean[], r = 2) {
 export type Mode = "trace" | "copy" | "recall";
 
 export default function HandwritingCanvas({
-  letter, expectedDots, onResult, size = 300,
-}: { letter: string; expectedDots: number; onResult?: (score: number, ok: boolean) => void; size?: number }) {
+  letter, expectedDots, onResult, size = 300, showPlayground = false,
+}: { letter: string; expectedDots: number; onResult?: (score: number, ok: boolean) => void; size?: number; showPlayground?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<Mode>("trace");
   const [zoom, setZoom] = useState(1);
@@ -251,22 +251,26 @@ export default function HandwritingCanvas({
             <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(201,162,39,.12)" strokeDasharray="6 6" />
 
             {/* Behavior Header at top */}
-            <g opacity="0.4">
-              <text x="150" y="45" textAnchor="middle" fontSize="10" fill="rgba(245,237,214,.5)" fontFamily="Inter" letterSpacing="0.1em">CONNECTION BEHAVIOR</text>
-              <text
-                x="150" y="85"
-                textAnchor="middle"
-                dir="rtl"
-                style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 50 }}
-                fill="#4c7fd0"
-              >
-                {`ـ${letter}ـ`}
-              </text>
-              <text x="150" y="105" textAnchor="middle" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter">reaching out (ـ) before and after</text>
-            </g>
+            {showPlayground && (
+              <g opacity="0.4">
+                <text x="150" y="45" textAnchor="middle" fontSize="10" fill="rgba(245,237,214,.5)" fontFamily="Inter" letterSpacing="0.1em">CONNECTION BEHAVIOR</text>
+                <text
+                  x="150" y="85"
+                  textAnchor="middle"
+                  dir="rtl"
+                  style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 50 }}
+                  fill="#4c7fd0"
+                >
+                  {`ـ${letter}ـ`}
+                </text>
+                <text x="150" y="105" textAnchor="middle" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter">reaching out (ـ) before and after</text>
+              </g>
+            )}
 
             {/* Isolation Label */}
-            <text x="20" y="180" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter" transform="rotate(-90 20 180)">ISOLATION FORM</text>
+            {showPlayground && (
+              <text x="20" y="180" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter" transform="rotate(-90 20 180)">ISOLATION FORM</text>
+            )}
 
             {/* Fallback: simple letter display when no SVG animation available */}
             {!svgLoaded && (
@@ -339,7 +343,8 @@ export default function HandwritingCanvas({
       </div>
 
       {/* Syllable Playground */}
-      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-4">
+      {showPlayground && (
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-4">
         <div className="flex items-center justify-between text-xs text-sand/60">
           <span className="font-bold uppercase tracking-wider">Syllable Playground</span>
           <span className="italic text-[11px]">See how {letter} joins long vowels</span>
@@ -384,7 +389,7 @@ export default function HandwritingCanvas({
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {result && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
