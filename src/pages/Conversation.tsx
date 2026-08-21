@@ -21,6 +21,7 @@ export default function Conversation() {
   const [quizOpen, setQuizOpen] = useState(false);
   const [rpIdx, setRpIdx] = useState(0);
   const [rpLog, setRpLog] = useState<{ who: string; text: string; score?: number }[]>([]);
+  const [introOpen, setIntroOpen] = useState(false);
 
   const dlg = DIALOGUES[stage];
   const all = DIALOGUES.flatMap((d) => d.lines);
@@ -76,6 +77,9 @@ export default function Conversation() {
               stage === i ? "border-gold bg-gold/20 text-gold" : "border-white/12 text-sand/60")}>{d.title}</button>
         ))}
         <div className="ml-auto flex gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setIntroOpen(true)} className="border border-gold/30 bg-gold/10 text-gold hover:bg-gold/20">
+            🌉 Linguistic Bridge Note
+          </Button>
           {([1, 2, 3] as Phase[]).map((p) => (
             <button key={p} onClick={() => setPhase(p)}
               className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold",
@@ -86,8 +90,13 @@ export default function Conversation() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-gold/25 bg-gold/10 p-3 text-xs text-sand/70">
-        📝 This dialogue uses informal <b>Levantine</b> forms (شو، وين) alongside MSA — widely understood across the Arab world. Formal MSA equivalents: ما / أين.
+      <div className="flex items-center justify-between rounded-xl border border-gold/25 bg-gold/10 p-3 text-xs text-sand/70">
+        <div>
+          📝 This dialogue bridges formal <b>MSA</b> with <b>Educated Spoken Arabic (ESA)</b> — the natural register used by native speakers.
+        </div>
+        <button onClick={() => setIntroOpen(true)} className="ml-2 shrink-0 font-semibold text-gold underline underline-offset-2">
+          Learn about register →
+        </button>
       </div>
 
       {phase === 1 && (
@@ -114,15 +123,30 @@ export default function Conversation() {
                   <div className="flex items-start gap-3">
                     <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold",
                       l.speaker === "A" ? "bg-[#3A1A6B]" : "bg-maroon")}>{l.name[0]}</span>
-                    <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-[11px] text-sand/50">
-                        {l.name} · {l.id}.mp3
-                        {l.note && <Chip>note</Chip>}
+                        <span>{l.name}</span>
+                        <span>·</span>
+                        <span>{l.id}.mp3</span>
+                        {l.note ? (
+                          <span className="rounded bg-purple/20 px-1.5 py-0.5 text-[10px] font-bold text-purple-300 border border-purple/30" title="Educated Spoken Arabic (ESA) register">
+                            🟣 ESA (Spoken)
+                          </span>
+                        ) : (
+                          <span className="rounded bg-azure/20 px-1.5 py-0.5 text-[10px] font-bold text-azure-300 border border-azure/30" title="Modern Standard Arabic (MSA) register">
+                            🔵 MSA (Formal)
+                          </span>
+                        )}
+                        {l.note && <Chip color="#8A3D8A">register note</Chip>}
                       </div>
                       <div className="ar mt-1 text-2xl">{l.ar}</div>
                       <div className="text-sm text-sand/60">{l.en}</div>
                       <div className="text-[11px] text-sand/35">{l.translit}</div>
-                      {l.note && <div className="mt-1 rounded-lg bg-black/25 p-2 text-[11px] text-gold/80">{l.note}</div>}
+                      {l.note && (
+                        <div className="mt-2 rounded-xl border border-purple/30 bg-purple/10 p-2.5 text-[11px] text-purple-200">
+                          <span className="font-bold text-gold">Register Bridge:</span> {l.note}
+                        </div>
+                      )}
                     </div>
                     <div className="flex shrink-0 flex-col gap-1">
                       <Button size="sm" variant="ghost" disabled={lock}
@@ -246,6 +270,34 @@ export default function Conversation() {
           ))}
         </div>
       </Card>
+
+      <Modal open={introOpen} onClose={() => setIntroOpen(false)}>
+        <div className="space-y-4 text-center">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-purple/20 text-3xl shadow-lg shadow-purple/10">
+            🌉
+          </div>
+          <h2 className="text-xl font-extrabold text-gold">The Linguistic Bridge: MSA & ESA</h2>
+          <p className="text-xs leading-relaxed text-sand/75 text-right sm:text-center" dir="ltr">
+            Arabic is a living continuum. In real-world conversations, educated Arabs do not speak rigid dictionary MSA in casual settings. Instead, they use a natural bridge known as <b>Educated Spoken Arabic (ESA)</b>.
+          </p>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left space-y-3">
+            <div className="flex items-start gap-2.5 text-xs">
+              <span className="rounded bg-azure/20 px-1.5 py-0.5 font-bold text-azure-300 border border-azure/30 shrink-0">🔵 MSA</span>
+              <span className="text-sand/70">Modern Standard Arabic — formal, written, and used across the Arab world in official contexts, news, and literature.</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs">
+              <span className="rounded bg-purple/20 px-1.5 py-0.5 font-bold text-purple-300 border border-purple/30 shrink-0">🟣 ESA</span>
+              <span className="text-sand/70">Educated Spoken Arabic — the elevated spoken register that blends MSA grammar with common conversational expressions (like <span className="ar text-sm">شو</span> instead of <span className="ar text-sm">ماذا</span>).</span>
+            </div>
+          </div>
+          <p className="text-[11px] text-sand/45">
+            By labeling these registers, Arabic1010 ensures you learn formal grammar while gaining the practical fluency needed to actually talk to people!
+          </p>
+          <Button className="w-full" onClick={() => setIntroOpen(false)}>
+            Got it, let's practice! →
+          </Button>
+        </div>
+      </Modal>
 
       <Modal open={quizOpen} onClose={() => setQuizOpen(false)} wide>
         <Quiz module="dialogue" subId={dlg.id} title="Conversation test" generate={generate} onClose={() => setQuizOpen(false)} />
