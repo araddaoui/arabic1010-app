@@ -96,6 +96,10 @@ export default function HandwritingCanvas({
   letter, expectedDots, onResult, size = 300, showPlayground = false,
 }: { letter: string; expectedDots: number; onResult?: (score: number, ok: boolean) => void; size?: number; showPlayground?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Hard guard: disable playground for digits or words (only for isolated letters)
+  const isArabicLetter = /^[ \u0621-\u064A]+$/.test(letter) && letter.length === 1;
+  const activePlayground = showPlayground && isArabicLetter;
   const [mode, setMode] = useState<Mode>("trace");
   const [zoom, setZoom] = useState(1);
   const [drawing, setDrawing] = useState(false);
@@ -251,7 +255,7 @@ export default function HandwritingCanvas({
             <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(201,162,39,.12)" strokeDasharray="6 6" />
 
             {/* Behavior Header at top */}
-            {showPlayground && (
+            {activePlayground && (
               <g opacity="0.4">
                 <text x="150" y="45" textAnchor="middle" fontSize="10" fill="rgba(245,237,214,.5)" fontFamily="Inter" letterSpacing="0.1em">CONNECTION BEHAVIOR</text>
                 <text
@@ -268,7 +272,7 @@ export default function HandwritingCanvas({
             )}
 
             {/* Isolation Label */}
-            {showPlayground && (
+            {activePlayground && (
               <text x="20" y="180" fontSize="9" fill="rgba(245,237,214,.3)" fontFamily="Inter" transform="rotate(-90 20 180)">ISOLATION FORM</text>
             )}
 
@@ -343,54 +347,53 @@ export default function HandwritingCanvas({
       </div>
 
       {/* Syllable Playground */}
-      {showPlayground && (
+      {activePlayground && (
         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-4">
-        <div className="flex items-center justify-between text-xs text-sand/60">
-          <span className="font-bold uppercase tracking-wider">Syllable Playground</span>
-          <span className="italic text-[11px]">See how {letter} joins long vowels</span>
-        </div>
+          <div className="flex items-center justify-between text-xs text-sand/60">
+            <span className="font-bold uppercase tracking-wider">Syllable Playground</span>
+            <span className="italic text-[11px]">See how {letter} joins long vowels</span>
+          </div>
 
-        <div className="flex justify-center gap-2">
-          {(["long_alif", "long_waw", "long_ya"] as VowelKey[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setActiveVowel(v)}
-              className={cn(
-                "h-10 w-12 rounded-lg border text-xl ar transition-all",
-                activeVowel === v
-                  ? "border-gold bg-gold/20 text-gold scale-110 shadow-lg shadow-gold/10"
-                  : "border-white/10 bg-white/5 text-sand/40 hover:bg-white/10"
-              )}
-            >
-              {v === "long_alif" ? "ـا" : v === "long_waw" ? "ـو" : "ـي"}
-            </button>
-          ))}
-        </div>
+          <div className="flex justify-center gap-2">
+            {(["long_alif", "long_waw", "long_ya"] as VowelKey[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setActiveVowel(v)}
+                className={cn(
+                  "h-10 w-12 rounded-lg border text-xl ar transition-all",
+                  activeVowel === v
+                    ? "border-gold bg-gold/20 text-gold scale-110 shadow-lg shadow-gold/10"
+                    : "border-white/10 bg-white/5 text-sand/40 hover:bg-white/10"
+                )}
+              >
+                {v === "long_alif" ? "ـا" : v === "long_waw" ? "ـو" : "ـي"}
+              </button>
+            ))}
+          </div>
 
-        <div className="flex items-center justify-center gap-4 py-2" dir="rtl">
-          <div className="flex items-center gap-3 text-3xl">
-            <div className="flex flex-col items-center gap-1">
-              <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">{letter}</span>
-              <span className="text-[10px] text-sand/30 uppercase font-bold">letter</span>
-            </div>
-            <span className="text-sand/20 text-xl">+</span>
-            <div className="flex flex-col items-center gap-1">
-              <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">
-                {activeVowel === "long_alif" ? "ا" : activeVowel === "long_waw" ? "و" : "ي"}
-              </span>
-              <span className="text-[10px] text-sand/30 uppercase font-bold">vowel</span>
-            </div>
-            <span className="text-sand/20 text-xl">←</span>
-            <div className="flex flex-col items-center gap-1">
-              <span className="ar px-6 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold font-bold shadow-lg shadow-gold/5">
-                {vowelForm(letter, activeVowel)}
-              </span>
-              <span className="text-[10px] text-gold/40 uppercase font-bold">syllable</span>
+          <div className="flex items-center justify-center gap-4 py-2" dir="rtl">
+            <div className="flex items-center gap-3 text-3xl">
+              <div className="flex flex-col items-center gap-1">
+                <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">{letter}</span>
+                <span className="text-[10px] text-sand/30 uppercase font-bold">letter</span>
+              </div>
+              <span className="text-sand/20 text-xl">+</span>
+              <div className="flex flex-col items-center gap-1">
+                <span className="ar px-4 py-2 rounded-xl bg-white/5 border border-white/10 shadow-inner">
+                  {activeVowel === "long_alif" ? "ا" : activeVowel === "long_waw" ? "و" : "ي"}
+                </span>
+                <span className="text-[10px] text-sand/30 uppercase font-bold">vowel</span>
+              </div>
+              <span className="text-sand/20 text-xl">←</span>
+              <div className="flex flex-col items-center gap-1">
+                <span className="ar px-6 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold font-bold shadow-lg shadow-gold/5">
+                  {vowelForm(letter, activeVowel)}
+                </span>
+                <span className="text-[10px] text-gold/40 uppercase font-bold">syllable</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
       )}
 
       {result && (

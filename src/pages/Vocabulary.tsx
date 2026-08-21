@@ -187,7 +187,6 @@ export default function Vocabulary() {
                   letter={word.bare[0]} 
                   expectedDots={0} 
                   size={240} 
-                  showPlayground={false}
                   onResult={(_, ok) => ok && award("vocab", word.id)} 
                 />
               )}
