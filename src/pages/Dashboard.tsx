@@ -111,7 +111,7 @@ export default function Dashboard({ navigate }: { navigate: (p: string) => void 
               <Progress pct={overall} color="#C9A227" />
             </div>
             {overall === 100 && (
-              <Button size="sm" className="mt-4 w-full" onClick={() => navigate("/settings")}>Claim Certificate</Button>
+              <Button size="sm" className="mt-4 w-full" onClick={() => navigate("/certificate")}>Claim Certificate</Button>
             )}
           </Card>
           <Stat label="Items in review queue" value={due.length} sub="Spaced repetition: 1 → 3 → 7 → 14 → 30 days" color="#1D9E75" />

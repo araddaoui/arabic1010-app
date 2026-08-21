@@ -16,6 +16,8 @@ import Review from "./pages/Review";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import PublicInfo from "./pages/PublicInfo";
+import Verify from "./pages/Verify";
+import Certificate from "./pages/Certificate";
 
 function useHashRoute(): [string, (p: string) => void] {
   const [path, setPath] = useState(() => window.location.hash.replace(/^#/, "") || "/");
@@ -55,6 +57,11 @@ function Shell() {
     return <PublicInfo path={path} />;
   }
 
+  if (path.startsWith("/verify")) {
+    const id = path.split("/")[2];
+    return <Verify id={id} navigate={navigate} />;
+  }
+
   if (!user) return <Auth />;
 
   const page = () => {
@@ -70,6 +77,7 @@ function Shell() {
       case "/review": return <Review navigate={navigate} />;
       case "/settings": return <Settings />;
       case "/admin": return <Admin />;
+      case "/certificate": return <Certificate />;
       default: return <Dashboard navigate={navigate} />;
     }
   };
