@@ -4,6 +4,7 @@ import { Button, Chip } from "@/components/ui";
 import { cn } from "@/utils/cn";
 import { vowelForm, type VowelKey } from "@/data/letters";
 import { LETTER_SVGS, prepareSvg } from "@/data/letterAnimations";
+import { play, audioPath } from "@/lib/audio";
 import { LETTER_SVG_OVERRIDES } from "@/data/letterAnimationOverrides";
 
 const G = 64; // analysis grid
@@ -388,9 +389,20 @@ export default function HandwritingCanvas({
               </div>
               <span className="text-sand/20 text-xl">←</span>
               <div className="flex flex-col items-center gap-1">
-                <span className="ar px-6 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold font-bold shadow-lg shadow-gold/5">
-                  {vowelForm(letter, activeVowel)}
-                </span>
+                <div className="relative group">
+                  <span className="ar px-6 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold font-bold shadow-lg shadow-gold/5 block">
+                    {vowelForm(letter, activeVowel)}
+                  </span>
+                  <button
+                    onClick={() => play(audioPath("letters", `${letter}_${activeVowel}`), vowelForm(letter, activeVowel))}
+                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gold text-black shadow-lg transition-transform hover:scale-110 active:scale-95"
+                    title="Listen to syllable"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                      <path d="M10 3.75a.75.75 0 00-1.264-.546L5.203 6.5H3.5a1.5 1.5 0 00-1.5 1.5v4a1.5 1.5 0 001.5 1.5h1.703l3.533 3.296A.75.75 0 0010 16.25V3.75zM14.25 10a3.25 3.25 0 01-1.013 2.344.75.75 0 001.026 1.102A4.75 4.75 0 0015.75 10a4.75 4.75 0 00-1.487-3.446.75.75 0 00-1.026 1.102A3.25 3.25 0 0114.25 10z" />
+                    </svg>
+                  </button>
+                </div>
                 <span className="text-[10px] text-gold/40 uppercase font-bold">syllable</span>
               </div>
             </div>
