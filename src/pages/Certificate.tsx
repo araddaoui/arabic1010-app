@@ -34,9 +34,9 @@ export default function Certificate() {
         {/* Inner Gold Border */}
         <div className="h-full w-full border-2 border-[#C9A227] p-12 text-center relative">
           
-          {/* Watermark Ayn */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] overflow-hidden">
-            <div className="ar-c text-[800px] leading-none select-none text-[#C9A227]">ع</div>
+          {/* Watermark Ayn (Raised to top) */}
+          <div className="absolute inset-x-0 top-0 flex items-start justify-center pointer-events-none opacity-[0.04] overflow-hidden">
+            <div className="ar-c text-[1000px] leading-none select-none text-[#C9A227] -mt-20">ع</div>
           </div>
 
           {/* Seal & Ribbon */}
@@ -71,7 +71,7 @@ export default function Certificate() {
             <div className="text-sm font-bold text-[#C9A227] mt-1">(Level 1)</div>
 
             <div className="mt-12 text-lg">This is to certify that</div>
-            <div className="mt-4 text-5xl font-black text-[#7B2020] uppercase tracking-wide">{user.name}</div>
+            <div className="mt-4 text-5xl font-black text-[#7B2020] uppercase tracking-wide">{user.name || "ARABIC LEARNER"}</div>
             
             <div className="mx-auto mt-6 w-64 border-t-2 border-[#C9A227]"></div>
             
@@ -99,7 +99,7 @@ export default function Certificate() {
               </div>
             </div>
 
-            <div className="mt-12 text-[9px] font-bold opacity-30 flex justify-center gap-8">
+            <div className="mt-16 text-[9px] font-bold opacity-30 flex justify-center gap-8">
               <span>Credential ID: {certId}</span>
               <a href={`#/verify/${certId}`} className="hover:text-[#C9A227] underline">Verify at: arabic1010.com/verify</a>
             </div>
