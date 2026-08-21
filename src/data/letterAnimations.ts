@@ -1858,7 +1858,7 @@ export const LETTER_SVGS: Record<string, string> = {
 	<line x1="30.29" y1="126.51" x2="28.84" y2="125.88" stroke-width="3.64" />
 	<line x1="28.84" y1="125.88" x2="27.38" y2="125.26" stroke-width="2.6" />
 	</g>
-	<circle cx="85" cy="45" r="4.5" fill="#1a1a1a" opacity="0"><animate attributeName="opacity" values="0;1" dur="0.2s" begin="6.0s" fill="freeze" /></circle>
+		<circle cx="85" cy="52" r="4.5" fill="#1a1a1a" opacity="0"><animate attributeName="opacity" values="0;1" dur="0.2s" begin="6.0s" fill="freeze" /></circle>
 	</svg>`,
 
 
