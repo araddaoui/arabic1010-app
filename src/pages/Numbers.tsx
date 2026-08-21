@@ -76,7 +76,6 @@ export default function Numbers() {
   const [visual, setVisual] = useState<VisualMode>("shapes");
   const [lockOpen, setLockOpen] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
-  const [hwTab, setHwTab] = useState<"glyph" | "word" | "both">("glyph");
   const [answer, setAnswer] = useState("");
   const [opFeedback, setOpFeedback] = useState<string | null>(null);
 
@@ -225,89 +224,19 @@ export default function Numbers() {
           </div>
         {/* ── Handwriting section ── */}
         <div className="mt-5 border-t border-white/10 pt-4">
-          <div className="mb-3 flex flex-wrap gap-2">
-            {(["glyph", "word", "both"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setHwTab(t)}
-                className={cn(
-                  "rounded-lg border px-3 py-1.5 text-xs font-semibold",
-                  hwTab === t
-                    ? "border-gold bg-gold/20 text-gold"
-                    : "border-white/12 text-sand/60"
-                )}
-              >
-                {t === "glyph"
-                  ? "✏️ Write numeral"
-                  : t === "word"
-                  ? "✏️ Write word"
-                  : "📋 Write both"}
-              </button>
-            ))}
+          <div className="mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gold">✏️ Practice writing the numeral</h3>
+            <p className="mt-1 text-[11px] text-sand/50">
+              Trace, copy, and recall the Eastern numeral <span className="ar text-gold">{item.eastern}</span> to build muscle memory.
+            </p>
           </div>
-
-          {hwTab === "glyph" && (
-            <div>
-              <p className="mb-3 text-xs text-sand/50">
-                Practise writing the Eastern numeral{" "}
-                <span className="ar text-gold">{item.eastern}</span>.
-                Use Trace → Copy → Recall inside the canvas.
-              </p>
-              <HandwritingCanvas
-                letter={item.eastern}
-                expectedDots={0}
-                onResult={(_, ok) =>
-                  ok && award("numbers", `n${item.n}_glyph`, 10)
-                }
-              />
-            </div>
-          )}
-
-          {hwTab === "word" && (
-            <div>
-              <p className="mb-3 text-xs text-sand/50">
-                Practise writing the Arabic word{" "}
-                <span className="ar text-gold">{item.ar}</span>.
-                Use Trace → Copy → Recall inside the canvas.
-              </p>
-              <HandwritingCanvas
-                letter={item.ar}
-                expectedDots={0}
-                onResult={(_, ok) =>
-                  ok && award("numbers", `n${item.n}_khat`, 15)
-                }
-              />
-            </div>
-          )}
-
-          {hwTab === "both" && (
-            <div className="space-y-6">
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-gold">
-                  Eastern numeral — {item.eastern}
-                </div>
-                <HandwritingCanvas
-                  letter={item.eastern}
-                  expectedDots={0}
-                  onResult={(_, ok) =>
-                    ok && award("numbers", `n${item.n}_glyph`, 10)
-                  }
-                />
-              </div>
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-gold">
-                  Arabic word — {item.ar}
-                </div>
-                <HandwritingCanvas
-                  letter={item.ar}
-                  expectedDots={0}
-                  onResult={(_, ok) =>
-                    ok && award("numbers", `n${item.n}_khat`, 15)
-                  }
-                />
-              </div>
-            </div>
-          )}
+          <HandwritingCanvas
+            letter={item.eastern}
+            expectedDots={0}
+            onResult={(_, ok) =>
+              ok && award("numbers", `n${item.n}_glyph`, 10)
+            }
+          />
         </div>
         </Card>
       )}
