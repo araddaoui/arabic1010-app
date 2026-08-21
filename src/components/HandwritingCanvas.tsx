@@ -375,7 +375,7 @@ export default function HandwritingCanvas({
               </span>
               <span className="text-[10px] text-sand/30 uppercase font-bold">vowel</span>
             </div>
-            <span className="text-sand/20 text-xl">➔</span>
+            <span className="text-sand/20 text-xl">←</span>
             <div className="flex flex-col items-center gap-1">
               <span className="ar px-6 py-2 rounded-xl bg-gold/10 border border-gold/30 text-gold font-bold shadow-lg shadow-gold/5">
                 {vowelForm(letter, activeVowel)}
