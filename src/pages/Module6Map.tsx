@@ -19,6 +19,8 @@ export function Module6Map() {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [selectedCountryForMap, setSelectedCountryForMap] = useState<typeof countries[0] | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [testOptions, setTestOptions] = useState<typeof countries>([]);
+  const [feedback, setFeedback] = useState<{ id: string; ok: boolean } | null>(null);
 
   const countriesLearned = Object.keys(user?.progress ?? {}).filter(k => k.startsWith('map:')).map(k => k.split(':')[1]);
 
@@ -38,16 +40,45 @@ export function Module6Map() {
 
   const startTest = (mode: 'find' | 'name' | 'hear') => {
     const target = countries[Math.floor(Math.random() * countries.length)];
+    const others = [...countries]
+      .filter(c => c.id !== target.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, mode === 'hear' ? 3 : 5);
+    setTestOptions([...others, target].sort(() => Math.random() - 0.5));
     setTestTarget(target);
     setTestMode(mode);
+    setFeedback(null);
   };
 
-  const testAnswerButtons = (options: typeof countries) => (
+  const handleTestClick = (c: typeof countries[0]) => {
+    if (!testTarget) return;
+    if (c.id === testTarget.id) {
+      setFeedback({ id: c.id, ok: true });
+      award('map', c.id);
+      setTimeout(() => {
+        setTestMode(null);
+        setTestTarget(null);
+        setFeedback(null);
+      }, 1500);
+    } else {
+      setFeedback({ id: c.id, ok: false });
+      setTimeout(() => setFeedback(null), 1000);
+    }
+  };
+
+  const testAnswerButtons = () => (
     <div className="flex flex-wrap gap-2 justify-center max-h-48 overflow-y-auto">
-      {options.map(c => (
-        <button key={c.id} onClick={() => {
-          if (c.id === testTarget!.id) { award('map', c.id); setTestMode(null); setTestTarget(null); }
-        }} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 font-medium transition-all hover:scale-105 text-sm border border-white/10">
+      {testOptions.map(c => (
+        <button
+          key={c.id}
+          onClick={() => handleTestClick(c)}
+          className={cn(
+            "px-4 py-2 rounded-xl font-medium transition-all hover:scale-105 text-sm border",
+            feedback?.id === c.id
+              ? feedback.ok ? "bg-ok border-ok text-white" : "bg-red-500 border-red-500 text-white"
+              : "bg-white/10 hover:bg-white/20 border-white/10"
+          )}
+        >
           <div className="ar">{c.nameArabic}</div>
           <div className="text-sand/80">{c.nameEnglish}</div>
         </button>
@@ -56,61 +87,88 @@ export function Module6Map() {
   );
 
   if (testMode && testTarget) {
-    const shuffled = [...countries].sort(() => Math.random() - 0.5);
     return (
       <div className="max-w-3xl mx-auto text-center space-y-6 p-4">
-        <Button variant="ghost" onClick={() => { setTestMode(null); setTestTarget(null); }}>← Back to map</Button>
+        <Button variant="ghost" onClick={() => { setTestMode(null); setTestTarget(null); setFeedback(null); }}>← Back to map</Button>
 
         {testMode === 'find' && (
           <>
-            <p className="text-xl font-medium">🔍 Find this country on the map:</p>
-            <p className="ar text-3xl text-gold">{testTarget.nameArabic}</p>
-            <div className="flex justify-center"><AudioPlayer folder="countries" fileKey={testTarget.id} text={testTarget.nameArabic} /></div>
-            <div className="relative rounded-2xl overflow-hidden shadow-sm border border-gold/20">
-              <img src={MAP_IMG} alt="Arab World Map" className="w-full" />
+            <div className="space-y-2">
+              <p className="text-xl font-medium">🔍 Find this country on the map:</p>
+              <p className="ar text-4xl text-gold">{testTarget.nameArabic}</p>
+              <div className="flex justify-center"><AudioPlayer folder="countries" fileKey={testTarget.id} text={testTarget.nameArabic} /></div>
+            </div>
+            
+            <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gold/30 bg-white">
+              <img src={MAP_IMG} alt="Arab World Map" className="w-full block" />
               <svg viewBox={mapConfig.viewBox} className="absolute inset-0 w-full h-full">
-                <text x={testTarget.cx} y={testTarget.cy}
-                  textAnchor="middle" dominantBaseline="central"
-                  fill="#FF8F00" fontSize="24" fontWeight="bold"
-                  fontFamily="'Noto Naskh Arabic', serif"
-                  stroke="#1A1A2E" strokeWidth="0.5"
-                >
-                  {testTarget.nameArabic}
-                </text>
+                {countries.map(c => (
+                  <circle
+                    key={c.id}
+                    cx={c.cx}
+                    cy={c.cy}
+                    r={c.r * 2.5}
+                    fill={feedback?.id === c.id ? (feedback.ok ? "rgba(34,197,94,0.6)" : "rgba(239,68,68,0.6)") : "transparent"}
+                    stroke={feedback?.id === c.id ? (feedback.ok ? "#22c55e" : "#ef4444") : "none"}
+                    strokeWidth="3"
+                    className="cursor-pointer transition-colors duration-200"
+                    onClick={() => handleTestClick(c)}
+                  />
+                ))}
+                {feedback?.ok && (
+                  <text x={testTarget.cx} y={testTarget.cy}
+                    textAnchor="middle" dominantBaseline="central"
+                    fill="#1A1A2E" fontSize="28" fontWeight="bold"
+                    fontFamily="'Noto Naskh Arabic', serif"
+                    stroke="#FFFFFF" strokeWidth="4" paintOrder="stroke"
+                  >
+                    {testTarget.nameArabic}
+                  </text>
+                )}
               </svg>
             </div>
-            {testAnswerButtons(shuffled.slice(0, 6))}
+            <p className="text-sm text-sand/50 italic">Tap the location of the country on the map</p>
           </>
         )}
 
         {testMode === 'name' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <p className="text-xl font-medium">🗺️ Which country is highlighted?</p>
-            <div className="relative rounded-2xl overflow-hidden shadow-sm border border-gold/20">
-              <img src={MAP_IMG} alt="Arab World Map" className="w-full" />
+            <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gold/30 bg-white">
+              <img src={MAP_IMG} alt="Arab World Map" className="w-full block" />
               <svg viewBox={mapConfig.viewBox} className="absolute inset-0 w-full h-full">
-                <text x={testTarget.cx} y={testTarget.cy}
-                  textAnchor="middle" dominantBaseline="central"
-                  fill="#FF8F00" fontSize="24" fontWeight="bold"
-                  fontFamily="'Noto Naskh Arabic', serif"
-                  stroke="#1A1A2E" strokeWidth="0.5"
-                >
-                  {testTarget.nameArabic}
-                </text>
+                <circle
+                  cx={testTarget.cx}
+                  cy={testTarget.cy}
+                  r={testTarget.r * 2.5}
+                  fill="rgba(255,200,0,0.4)"
+                  stroke="#FF8F00"
+                  strokeWidth="3"
+                />
+                {feedback?.ok && (
+                  <text x={testTarget.cx} y={testTarget.cy}
+                    textAnchor="middle" dominantBaseline="central"
+                    fill="#1A1A2E" fontSize="28" fontWeight="bold"
+                    fontFamily="'Noto Naskh Arabic', serif"
+                    stroke="#FFFFFF" strokeWidth="4" paintOrder="stroke"
+                  >
+                    {testTarget.nameArabic}
+                  </text>
+                )}
               </svg>
             </div>
-            {testAnswerButtons(shuffled.slice(0, 6))}
+            {testAnswerButtons()}
           </div>
         )}
 
         {testMode === 'hear' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <p className="text-xl font-medium">🎧 Which country do you hear?</p>
-            <div className="flex justify-center"><AudioPlayer folder="countries" fileKey={testTarget.id} text={testTarget.nameArabic} /></div>
-            <div className="relative rounded-2xl overflow-hidden shadow-sm border border-gold/20">
+            <div className="flex justify-center scale-150 py-4"><AudioPlayer folder="countries" fileKey={testTarget.id} text={testTarget.nameArabic} /></div>
+            <div className="relative rounded-2xl overflow-hidden shadow-md border border-white/10 opacity-40 grayscale">
               <img src={MAP_IMG} alt="Arab World Map" className="w-full" />
             </div>
-            {testAnswerButtons(shuffled.slice(0, 4))}
+            {testAnswerButtons()}
           </div>
         )}
       </div>
