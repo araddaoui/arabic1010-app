@@ -97,6 +97,23 @@ export default function Dashboard({ navigate }: { navigate: (p: string) => void 
         </Card>
         <div className="grid gap-4">
           <Stat label="XP to next level" value={`${lv.next - lv.into}`} sub={`Level ${lv.level} → ${lv.level + 1}`} color="#C9A227" />
+          <Card className="relative overflow-hidden border-gold/30 bg-gradient-to-br from-gold/10 to-transparent">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gold">Digital Arabic Literacy</h3>
+              <span className="text-2xl">🎓</span>
+            </div>
+            <p className="mt-2 text-xs text-sand/60">Complete all 6 modules to unlock your professional PDF certificate signed by our lead linguist.</p>
+            <div className="mt-3">
+              <div className="flex justify-between text-[10px] text-gold/60 uppercase tracking-widest mb-1">
+                <span>Progress</span>
+                <span>{overall}%</span>
+              </div>
+              <Progress pct={overall} color="#C9A227" />
+            </div>
+            {overall === 100 && (
+              <Button size="sm" className="mt-4 w-full" onClick={() => navigate("/settings")}>Claim Certificate</Button>
+            )}
+          </Card>
           <Stat label="Items in review queue" value={due.length} sub="Spaced repetition: 1 → 3 → 7 → 14 → 30 days" color="#1D9E75" />
         </div>
       </div>

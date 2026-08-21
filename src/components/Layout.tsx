@@ -111,7 +111,19 @@ export default function Layout({ path, navigate, children }: { path: string; nav
               Freemium gating is off. All modules and items are unlocked.
             </p>
           </div>
-        ) : !user?.premium ? (
+        ) : null}
+
+        <div className="mt-4 rounded-2xl border border-gold/20 bg-gold/5 p-3">
+          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gold/60">
+            <span>Certification Goal</span>
+            <span>🎓</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-gold transition-all" style={{ width: `${Math.round((learnedCount("cognates") + learnedCount("letters") + learnedCount("numbers") + learnedCount("vocab") + learnedCount("dialogue") + learnedCount("map")) / (30+28+10+20+12+22) * 100)}%` }} />
+          </div>
+        </div>
+
+        {!DEV_UNLOCK_ALL && !user?.premium ? (
           <div className="mt-5 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/15 to-transparent p-4">
             <div className="text-sm font-bold text-gold">Go Premium</div>
             <p className="mt-1 text-xs text-sand/60">Unlock all 6 modules, handwriting AI and offline mode.</p>
