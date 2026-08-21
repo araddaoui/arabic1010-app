@@ -122,10 +122,11 @@ export function prepareSvg(raw: string, uid = ""): string {
  *   • FALLBACK  → viewBox is "0 0 300 300". A rough approximation I wrote;
  *                 NOT an accurate letterform. Replace when the real file lands.
  *
- * REAL (26):     alif · baa · taa · thaa · jiim · haa · khaa · raa · siin ·
- *                shiin · saad · daad · taa_emphatic · ayn · ghayn · daal · dhaal ·
- *                faa · qaaf · kaaf · laam · miim · nuun · haa_soft · waaw · yaa
- * FALLBACK (2):  zaay zaa_emphatic
+ * REAL (28):     alif · baa · taa · thaa · jiim · haa · khaa · raa · zaay · siin ·
+ *                shiin · saad · daad · taa_emphatic · zaa_emphatic · ayn · ghayn ·
+ *                daal · dhaal · faa · qaaf · kaaf · laam · miim · nuun · haa_soft ·
+ *                waaw · yaa
+ * FALLBACK (0):  None (all 28 letters now use professional mask-based SVG assets)
  *
  * Update this block whenever a real file is added.
  * ─────────────────────────────────────────────────────────────
@@ -926,10 +927,8 @@ export const LETTER_SVGS: Record<string, string> = {
 <line x1="37.23" y1="127.79" x2="35.6" y2="127.9" stroke-width="9.38" />
 <line x1="35.6" y1="127.9" x2="34.29" y2="127.51" stroke-width="9.13" />
 <line x1="34.29" y1="127.51" x2="32.98" y2="127.13" stroke-width="8.63" />
-</g>
-<circle cx="50.54" cy="105.32" r="3.68" fill="#1a1a1a" opacity="0"><animate attributeName="opacity" values="0;1" dur="0.14s" begin="0.34s" fill="freeze" /></circle>
-<circle cx="54.13" cy="123.21" r="3.68" fill="#1a1a1a" opacity="0"><animate attributeName="opacity" values="0;1" dur="0.14s" begin="0.49s" fill="freeze" /></circle>
-</svg>`,
+	</g>
+	</svg>`,
 
   dhaal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 85 215.8" width="85" height="215.8">
 <defs>
@@ -1035,13 +1034,59 @@ export const LETTER_SVGS: Record<string, string> = {
 </g>
 </svg>`,
 
-  zaay: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
-  <path d="M200,150 C190,160 178,175 168,193 C162,205 158,220 156,233" fill="none" stroke="#FFD54A" stroke-width="8" stroke-linecap="round" stroke-dasharray="120" stroke-dashoffset="120">
-    <animate attributeName="stroke-dashoffset" from="120" to="0" dur="1.5s" fill="freeze" begin="0.3s"/>
-  </path>
-  <circle cx="188" cy="125" r="5" fill="#FFD54A" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="2s"/>
-  </circle>
+  zaay: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 79.9 215.8" width="79.9" height="215.8">
+<defs>
+<mask id="tk-m0" maskUnits="userSpaceOnUse"><path d="M 45.18 105.08 L 45.51 106.63 L 45.84 108.19 L 46.17 109.74 L 46.31 111.29 L 46.46 112.85 L 47.23 114.29 L 48.01 115.74 L 48.78 117.19 L 49.56 118.64 L 50.08 120.05 L 50.6 121.46 L 51.11 122.87 L 51.47 124.57 L 51.82 126.26 L 51.73 127.77 L 51.63 129.27 L 51.54 130.78 L 50.69 132.47 L 49.84 134.17 L 49 135.86 L 48.15 137.56 L 47.2 138.72 L 46.24 139.89 L 45.29 141.05 L 44.34 142.22 L 43.02 143.49 L 41.7 144.76 L 40.38 146.03 L 39.02 146.97 L 37.65 147.91 L 36.29 148.85 L 34.78 149.56 L 33.27 150.27 L 31.77 150.97 L 30.43 151.33 L 29.09 151.68 L 27.39 151.54 L 25.7 151.4 L 24 151.26 L 22.12 150.93 L 20.24 150.6 L 18.35 150.27 L 16.91 149.81 L 15.46 149.35 L 14.01 148.89 L 12.56 148.43" fill="none" stroke="#fff" stroke-width="12.11" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;0" keyTimes="0;1" calcMode="spline" keySplines="0.33 0 0.15 1" dur="3.41s" begin="0s" fill="freeze" /></path></mask>
+</defs>
+<g mask="url(#tk-m0)" fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+<line x1="45.18" y1="105.08" x2="45.51" y2="106.63" stroke-width="2.4" />
+<line x1="45.51" y1="106.63" x2="45.84" y2="108.19" stroke-width="3.81" />
+<line x1="45.84" y1="108.19" x2="46.17" y2="109.74" stroke-width="5.23" />
+<line x1="46.17" y1="109.74" x2="46.31" y2="111.29" stroke-width="6.43" />
+<line x1="46.31" y1="111.29" x2="46.46" y2="112.85" stroke-width="7.41" />
+<line x1="46.46" y1="112.85" x2="47.23" y2="114.29" stroke-width="7.77" />
+<line x1="47.23" y1="114.29" x2="48.01" y2="115.74" stroke-width="7.48" />
+<line x1="48.01" y1="115.74" x2="48.78" y2="117.19" stroke-width="7.2" />
+<line x1="48.78" y1="117.19" x2="49.56" y2="118.64" stroke-width="6.92" />
+<line x1="49.56" y1="118.64" x2="50.08" y2="120.05" stroke-width="6.47" />
+<line x1="50.08" y1="120.05" x2="50.6" y2="121.46" stroke-width="5.85" />
+<line x1="50.6" y1="121.46" x2="51.11" y2="122.87" stroke-width="5.23" />
+<line x1="51.11" y1="122.87" x2="51.47" y2="124.57" stroke-width="4.61" />
+<line x1="51.47" y1="124.57" x2="51.82" y2="126.26" stroke-width="3.98" />
+<line x1="51.82" y1="126.26" x2="51.73" y2="127.77" stroke-width="3.62" />
+<line x1="51.73" y1="127.77" x2="51.63" y2="129.27" stroke-width="3.53" />
+<line x1="51.63" y1="129.27" x2="51.54" y2="130.78" stroke-width="3.44" />
+<line x1="51.54" y1="130.78" x2="50.69" y2="132.47" stroke-width="3.66" />
+<line x1="50.69" y1="132.47" x2="49.84" y2="134.17" stroke-width="4.22" />
+<line x1="49.84" y1="134.17" x2="49" y2="135.86" stroke-width="4.77" />
+<line x1="49" y1="135.86" x2="48.15" y2="137.56" stroke-width="5.32" />
+<line x1="48.15" y1="137.56" x2="47.2" y2="138.72" stroke-width="5.74" />
+<line x1="47.2" y1="138.72" x2="46.24" y2="139.89" stroke-width="6.04" />
+<line x1="46.24" y1="139.89" x2="45.29" y2="141.05" stroke-width="6.34" />
+<line x1="45.29" y1="141.05" x2="44.34" y2="142.22" stroke-width="6.64" />
+<line x1="44.34" y1="142.22" x2="43.02" y2="143.49" stroke-width="6.97" />
+<line x1="43.02" y1="143.49" x2="41.7" y2="144.76" stroke-width="7.33" />
+<line x1="41.7" y1="144.76" x2="40.38" y2="146.03" stroke-width="7.69" />
+<line x1="40.38" y1="146.03" x2="39.02" y2="146.97" stroke-width="7.92" />
+<line x1="39.02" y1="146.97" x2="37.65" y2="147.91" stroke-width="8.01" />
+<line x1="37.65" y1="147.91" x2="36.29" y2="148.85" stroke-width="8.11" />
+<line x1="36.29" y1="148.85" x2="34.78" y2="149.56" stroke-width="8.09" />
+<line x1="34.78" y1="149.56" x2="33.27" y2="150.27" stroke-width="7.95" />
+<line x1="33.27" y1="150.27" x2="31.77" y2="150.97" stroke-width="7.81" />
+<line x1="31.77" y1="150.97" x2="30.43" y2="151.33" stroke-width="7.64" />
+<line x1="30.43" y1="151.33" x2="29.09" y2="151.68" stroke-width="7.44" />
+<line x1="29.09" y1="151.68" x2="27.39" y2="151.54" stroke-width="6.87" />
+<line x1="27.39" y1="151.54" x2="25.7" y2="151.4" stroke-width="5.93" />
+<line x1="25.7" y1="151.4" x2="24" y2="151.26" stroke-width="4.99" />
+<line x1="24" y1="151.26" x2="22.12" y2="150.93" stroke-width="4.26" />
+<line x1="22.12" y1="150.93" x2="20.24" y2="150.6" stroke-width="3.73" />
+<line x1="20.24" y1="150.6" x2="18.35" y2="150.27" stroke-width="3.2" />
+<line x1="18.35" y1="150.27" x2="16.91" y2="149.81" stroke-width="2.79" />
+<line x1="16.91" y1="149.81" x2="15.46" y2="149.35" stroke-width="2.47" />
+<line x1="15.46" y1="149.35" x2="14.01" y2="148.89" stroke-width="2.16" />
+<line x1="14.01" y1="148.89" x2="12.56" y2="148.43" stroke-width="1.85" />
+</g>
+<circle cx="55" cy="92" r="4.5" fill="#1a1a1a" opacity="0"><animate attributeName="opacity" values="0;1" dur="0.2s" begin="3.6s" fill="freeze" /></circle>
 </svg>`,
 
   siin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 139.2 215.8" width="139.2" height="215.8">
