@@ -92,7 +92,7 @@ export default function Cognates() {
                 onClick={() => open(c)} className="text-left">
                 <Card className={cn("h-full transition hover:border-gold/60", lock && "opacity-60")}>
                   <div className="flex items-start justify-between">
-                    <span className="text-2xl">{c.emoji}</span>
+                    <span className="text-3xl">{c.emoji}</span>
                     <div className="flex items-center gap-1">
                       {done && <span className="text-xs text-ok">✓</span>}
                       {lock && <LockIcon className="text-gold/70" />}
@@ -113,7 +113,7 @@ export default function Cognates() {
         {active && (
           <div>
             <div className="text-center">
-              <div className="text-4xl">{active.emoji}</div>
+              <div className="text-5xl">{active.emoji}</div>
               <div className="ar-c mt-2 text-5xl">{active.ar}</div>
               <div className="mt-1 text-sm text-sand/50">{active.translit}</div>
               <div className="mt-2 text-xl font-bold capitalize">{active.en}</div>
