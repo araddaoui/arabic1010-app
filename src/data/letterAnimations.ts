@@ -1693,14 +1693,128 @@ export const LETTER_SVGS: Record<string, string> = {
 </g>
 </svg>`,
 
-  zaa_emphatic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
-  <path d="M95,205 C95,187 105,173 120,163 C135,155 155,155 168,163 C180,173 188,187 188,205 M188,205 L188,165 C188,145 187,123 186,100 M188,205 C188,205 175,207 155,209 C130,211 105,212 82,211" fill="none" stroke="#FFD54A" stroke-width="7" stroke-linecap="round" stroke-dasharray="500" stroke-dashoffset="500">
-    <animate attributeName="stroke-dashoffset" from="500" to="0" dur="3s" fill="freeze" begin="0.3s"/>
-  </path>
-  <circle cx="200" cy="78" r="5" fill="#FFD54A" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="3.5s"/>
-  </circle>
-</svg>`,
+  zaa_emphatic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 119.2 215.8" width="119.2" height="215.8">
+<defs>
+<mask id="tk-m0" maskUnits="userSpaceOnUse"><path d="M 51.92 61.02 L 51.85 62.75 L 51.78 64.48 L 51.71 66.22 L 52.12 67.46 L 52.54 68.71 L 52.33 70.06 L 52.12 71.41 L 52.23 73.28 L 52.33 75.16 L 52.52 77.04 L 52.71 78.93 L 52.9 80.82 L 53.09 82.71 L 53.28 84.6 L 53.48 86.49 L 53.67 88.37 L 53.86 90.26 L 54.05 92.15 L 54.24 94.04 L 54.43 95.93 L 54.62 97.82 L 54.58 99.65 L 54.54 101.48 L 54.49 103.3 L 54.45 105.13 L 54.41 106.96 L 54.37 108.79 L 54.33 110.62 L 54.29 112.45 L 54.24 114.28 L 54.2 116.11 L 55.03 116.53 L 55.66 115.9 L 55.03 116.53 L 54.83 116.11 L 55.24 115.49 L 55.14 116.53 L 55.03 117.57 L 54.62 116.74" fill="none" stroke="#fff" stroke-width="10.86" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;0" keyTimes="0;1" calcMode="spline" keySplines="0.33 0 0.15 1" dur="2.86s" begin="0s" fill="freeze" /></path></mask>
+<mask id="tk-m1" maskUnits="userSpaceOnUse"><path d="M 51.71 128.58 L 50.77 127.65 L 49.84 126.71 L 49.84 125.67 L 50.46 124.01 L 51.08 122.35 L 52.12 121.38 L 53.16 120.41 L 54.2 119.44 L 54.62 118.5 L 55.03 117.57 L 56.07 117.25 L 57.11 116.94 L 58.73 115.82 L 60.36 114.7 L 61.98 113.57 L 63.6 112.45 L 65.22 111.33 L 66.57 110.65 L 67.92 109.98 L 69.28 109.3 L 70.63 108.63 L 72.19 108.11 L 73.75 107.59 L 75.45 107.3 L 77.15 107.01 L 78.86 106.71 L 80.56 106.42 L 82.27 106.13 L 83.83 106.76 L 85.39 107.38 L 86.74 108.83 L 88.09 110.29 L 87.83 111.9 L 87.57 113.51 L 87.31 115.12 L 87.05 116.74 L 86.08 117.71 L 85.11 118.68 L 84.14 119.65 L 82.53 120.48 L 80.92 121.31 L 79.31 122.14 L 77.7 122.97 L 76.03 123.46 L 74.37 123.94 L 72.71 124.43 L 71.04 124.91 L 69.38 125.4 L 67.72 125.88 L 66.01 126.26 L 64.31 126.63 L 62.6 127 L 60.9 127.38 L 59.19 127.75 L 57.32 127.99 L 55.45 128.22 L 53.58 128.45 L 51.71 128.69 L 49.84 128.92 L 47.97 129.16 L 46.1 129.39 L 44.22 129.63 L 42.46 129.52 L 40.69 129.42 L 38.82 129 L 36.95 128.58 L 35.08 128.17 L 33.21 127.75 L 31.75 127.13 L 30.29 126.51 L 28.84 125.88 L 27.38 125.26" fill="none" stroke="#fff" stroke-width="15.21" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;0" keyTimes="0;1" calcMode="spline" keySplines="0.33 0 0.15 1" dur="5.45s" begin="0.36s" fill="freeze" /></path></mask>
+</defs>
+<g mask="url(#tk-m0)" fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+<line x1="51.92" y1="61.02" x2="51.85" y2="62.75" stroke-width="3" />
+<line x1="51.85" y1="62.75" x2="51.78" y2="64.48" stroke-width="4.29" />
+<line x1="51.78" y1="64.48" x2="51.71" y2="66.22" stroke-width="5.59" />
+<line x1="51.71" y1="66.22" x2="52.12" y2="67.46" stroke-width="6.44" />
+<line x1="52.12" y1="67.46" x2="52.54" y2="68.71" stroke-width="6.86" />
+<line x1="52.54" y1="68.71" x2="52.33" y2="70.06" stroke-width="6.65" />
+<line x1="52.33" y1="70.06" x2="52.12" y2="71.41" stroke-width="5.82" />
+<line x1="52.12" y1="71.41" x2="52.23" y2="73.28" stroke-width="5.3" />
+<line x1="52.23" y1="73.28" x2="52.33" y2="75.16" stroke-width="5.09" />
+<line x1="52.33" y1="75.16" x2="52.52" y2="77.04" stroke-width="4.96" />
+<line x1="52.52" y1="77.04" x2="52.71" y2="78.93" stroke-width="4.89" />
+<line x1="52.71" y1="78.93" x2="52.9" y2="80.82" stroke-width="4.82" />
+<line x1="52.9" y1="80.82" x2="53.09" y2="82.71" stroke-width="4.75" />
+<line x1="53.09" y1="82.71" x2="53.28" y2="84.6" stroke-width="4.68" />
+<line x1="53.28" y1="84.6" x2="53.48" y2="86.49" stroke-width="4.61" />
+<line x1="53.48" y1="86.49" x2="53.67" y2="88.37" stroke-width="4.54" />
+<line x1="53.67" y1="88.37" x2="53.86" y2="90.26" stroke-width="4.47" />
+<line x1="53.86" y1="90.26" x2="54.05" y2="92.15" stroke-width="4.4" />
+<line x1="54.05" y1="92.15" x2="54.24" y2="94.04" stroke-width="4.33" />
+<line x1="54.24" y1="94.04" x2="54.43" y2="95.93" stroke-width="4.26" />
+<line x1="54.43" y1="95.93" x2="54.62" y2="97.82" stroke-width="4.19" />
+<line x1="54.62" y1="97.82" x2="54.58" y2="99.65" stroke-width="4.1" />
+<line x1="54.58" y1="99.65" x2="54.54" y2="101.48" stroke-width="3.97" />
+<line x1="54.54" y1="101.48" x2="54.49" y2="103.3" stroke-width="3.85" />
+<line x1="54.49" y1="103.3" x2="54.45" y2="105.13" stroke-width="3.72" />
+<line x1="54.45" y1="105.13" x2="54.41" y2="106.96" stroke-width="3.6" />
+<line x1="54.41" y1="106.96" x2="54.37" y2="108.79" stroke-width="3.47" />
+<line x1="54.37" y1="108.79" x2="54.33" y2="110.62" stroke-width="3.35" />
+<line x1="54.33" y1="110.62" x2="54.29" y2="112.45" stroke-width="3.22" />
+<line x1="54.29" y1="112.45" x2="54.24" y2="114.28" stroke-width="3.1" />
+<line x1="54.24" y1="114.28" x2="54.2" y2="116.11" stroke-width="2.97" />
+<line x1="54.2" y1="116.11" x2="55.03" y2="116.53" stroke-width="2.75" />
+<line x1="55.03" y1="116.53" x2="55.66" y2="115.9" stroke-width="1.71" />
+<line x1="55.66" y1="115.9" x2="55.03" y2="116.53" stroke-width="1.71" />
+<line x1="55.03" y1="116.53" x2="54.83" y2="116.11" stroke-width="2.39" />
+<line x1="54.83" y1="116.11" x2="55.24" y2="115.49" stroke-width="1.51" />
+<line x1="55.24" y1="115.49" x2="55.14" y2="116.53" stroke-width="1.77" />
+<line x1="55.14" y1="116.53" x2="55.03" y2="117.57" stroke-width="3.64" />
+<line x1="55.03" y1="117.57" x2="54.62" y2="116.74" stroke-width="3.97" />
+</g>
+<g mask="url(#tk-m1)" fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+<line x1="51.71" y1="128.58" x2="50.77" y2="127.65" stroke-width="9.95" />
+<line x1="50.77" y1="127.65" x2="49.84" y2="126.71" stroke-width="8.85" />
+<line x1="49.84" y1="126.71" x2="49.84" y2="125.67" stroke-width="7.51" />
+<line x1="49.84" y1="125.67" x2="50.46" y2="124.01" stroke-width="5.92" />
+<line x1="50.46" y1="124.01" x2="51.08" y2="122.35" stroke-width="4.32" />
+<line x1="51.08" y1="122.35" x2="52.12" y2="121.38" stroke-width="3.63" />
+<line x1="52.12" y1="121.38" x2="53.16" y2="120.41" stroke-width="3.82" />
+<line x1="53.16" y1="120.41" x2="54.2" y2="119.44" stroke-width="4.02" />
+<line x1="54.2" y1="119.44" x2="54.62" y2="118.5" stroke-width="4.23" />
+<line x1="54.62" y1="118.5" x2="55.03" y2="117.57" stroke-width="4.46" />
+<line x1="55.03" y1="117.57" x2="56.07" y2="117.25" stroke-width="4.46" />
+<line x1="56.07" y1="117.25" x2="57.11" y2="116.94" stroke-width="4.23" />
+<line x1="57.11" y1="116.94" x2="58.73" y2="115.82" stroke-width="4.2" />
+<line x1="58.73" y1="115.82" x2="60.36" y2="114.7" stroke-width="4.37" />
+<line x1="60.36" y1="114.7" x2="61.98" y2="113.57" stroke-width="4.53" />
+<line x1="61.98" y1="113.57" x2="63.6" y2="112.45" stroke-width="4.7" />
+<line x1="63.6" y1="112.45" x2="65.22" y2="111.33" stroke-width="4.86" />
+<line x1="65.22" y1="111.33" x2="66.57" y2="110.65" stroke-width="5.13" />
+<line x1="66.57" y1="110.65" x2="67.92" y2="109.98" stroke-width="5.5" />
+<line x1="67.92" y1="109.98" x2="69.28" y2="109.3" stroke-width="5.86" />
+<line x1="69.28" y1="109.3" x2="70.63" y2="108.63" stroke-width="6.23" />
+<line x1="70.63" y1="108.63" x2="72.19" y2="108.11" stroke-width="6.57" />
+<line x1="72.19" y1="108.11" x2="73.75" y2="107.59" stroke-width="6.9" />
+<line x1="73.75" y1="107.59" x2="75.45" y2="107.3" stroke-width="7.48" />
+<line x1="75.45" y1="107.3" x2="77.15" y2="107.01" stroke-width="8.32" />
+<line x1="77.15" y1="107.01" x2="78.86" y2="106.71" stroke-width="9.15" />
+<line x1="78.86" y1="106.71" x2="80.56" y2="106.42" stroke-width="9.98" />
+<line x1="80.56" y1="106.42" x2="82.27" y2="106.13" stroke-width="10.81" />
+<line x1="82.27" y1="106.13" x2="83.83" y2="106.76" stroke-width="11.21" />
+<line x1="83.83" y1="106.76" x2="85.39" y2="107.38" stroke-width="11.19" />
+<line x1="85.39" y1="107.38" x2="86.74" y2="108.83" stroke-width="10.75" />
+<line x1="86.74" y1="108.83" x2="88.09" y2="110.29" stroke-width="9.91" />
+<line x1="88.09" y1="110.29" x2="87.83" y2="111.9" stroke-width="9.05" />
+<line x1="87.83" y1="111.9" x2="87.57" y2="113.51" stroke-width="8.16" />
+<line x1="87.57" y1="113.51" x2="87.31" y2="115.12" stroke-width="7.28" />
+<line x1="87.31" y1="115.12" x2="87.05" y2="116.74" stroke-width="6.39" />
+<line x1="87.05" y1="116.74" x2="86.08" y2="117.71" stroke-width="6.3" />
+<line x1="86.08" y1="117.71" x2="85.11" y2="118.68" stroke-width="7.01" />
+<line x1="85.11" y1="118.68" x2="84.14" y2="119.65" stroke-width="7.71" />
+<line x1="84.14" y1="119.65" x2="82.53" y2="120.48" stroke-width="8.22" />
+<line x1="82.53" y1="120.48" x2="80.92" y2="121.31" stroke-width="8.53" />
+<line x1="80.92" y1="121.31" x2="79.31" y2="122.14" stroke-width="8.85" />
+<line x1="79.31" y1="122.14" x2="77.7" y2="122.97" stroke-width="9.16" />
+<line x1="77.7" y1="122.97" x2="76.03" y2="123.46" stroke-width="9.34" />
+<line x1="76.03" y1="123.46" x2="74.37" y2="123.94" stroke-width="9.38" />
+<line x1="74.37" y1="123.94" x2="72.71" y2="124.43" stroke-width="9.42" />
+<line x1="72.71" y1="124.43" x2="71.04" y2="124.91" stroke-width="9.46" />
+<line x1="71.04" y1="124.91" x2="69.38" y2="125.4" stroke-width="9.5" />
+<line x1="69.38" y1="125.4" x2="67.72" y2="125.88" stroke-width="9.54" />
+	<line x1="67.72" y1="125.88" x2="66.01" y2="126.26" stroke-width="9.6" />
+	<line x1="66.01" y1="126.26" x2="64.31" y2="126.63" stroke-width="9.69" />
+	<line x1="64.31" y1="126.63" x2="62.6" y2="127" stroke-width="9.77" />
+	<line x1="62.6" y1="127" x2="60.9" y2="127.38" stroke-width="9.85" />
+	<line x1="60.9" y1="127.38" x2="59.19" y2="127.75" stroke-width="9.94" />
+	<line x1="59.19" y1="127.75" x2="57.32" y2="127.99" stroke-width="10" />
+	<line x1="57.32" y1="127.99" x2="55.45" y2="128.22" stroke-width="10.04" />
+	<line x1="55.45" y1="128.22" x2="53.58" y2="128.45" stroke-width="10.09" />
+	<line x1="53.58" y1="128.45" x2="51.71" y2="128.69" stroke-width="10.13" />
+	<line x1="51.71" y1="128.69" x2="49.84" y2="128.92" stroke-width="10.17" />
+	<line x1="49.84" y1="128.92" x2="47.97" y2="129.16" stroke-width="10.22" />
+	<line x1="47.97" y1="129.16" x2="46.1" y2="129.39" stroke-width="10.26" />
+	<line x1="46.1" y1="129.39" x2="44.22" y2="129.63" stroke-width="10.3" />
+	<line x1="44.22" y1="129.63" x2="42.46" y2="129.52" stroke-width="10.13" />
+	<line x1="42.46" y1="129.52" x2="40.69" y2="129.42" stroke-width="9.75" />
+	<line x1="40.69" y1="129.42" x2="38.82" y2="129" stroke-width="9.15" />
+	<line x1="38.82" y1="129" x2="36.95" y2="128.58" stroke-width="8.32" />
+	<line x1="36.95" y1="128.58" x2="35.08" y2="128.17" stroke-width="7.48" />
+	<line x1="35.08" y1="128.17" x2="33.21" y2="127.75" stroke-width="6.65" />
+	<line x1="33.21" y1="127.75" x2="31.75" y2="127.13" stroke-width="5.72" />
+	<line x1="31.75" y1="127.13" x2="30.29" y2="126.51" stroke-width="4.68" />
+	<line x1="30.29" y1="126.51" x2="28.84" y2="125.88" stroke-width="3.64" />
+	<line x1="28.84" y1="125.88" x2="27.38" y2="125.26" stroke-width="2.6" />
+	</g>
+	<circle cx="85" cy="45" r="4.5" fill="#1a1a1a" opacity="0"><animate attributeName="opacity" values="0;1" dur="0.2s" begin="6.0s" fill="freeze" /></circle>
+	</svg>`,
 
 
 
