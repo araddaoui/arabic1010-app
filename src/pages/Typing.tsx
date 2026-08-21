@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Card, Button, Stat, EmptyState, Progress } from "@/components/ui";
+import { Card, Button, Stat, EmptyState, Progress, Confetti } from "@/components/ui";
 import { useApp, MODULE_META } from "@/lib/store";
 import { useTypingPool, type TypingTarget } from "@/lib/typingPool";
 import { ARABIC_KEYBOARD_ROWS, TYPING_ACTIVE_CHARS } from "@/data/arabicKeyboard";
@@ -30,6 +30,7 @@ export default function Typing() {
   const [startTime, setStartTime]   = useState<number | null>(null);
   const [lastWpm, setLastWpm]       = useState<number | null>(null);
   const [isPlaying, setIsPlaying]   = useState(false);
+  const [sessionFinished, setSessionFinished] = useState(false);
 
   // Fluency tracking — resets when the word changes (index changes)
   const [fluencyStreak, setFluencyStreak] = useState(0);
@@ -125,8 +126,19 @@ export default function Typing() {
     setStartTime(null);
   }, []);
 
-  // Advance to next word
-  const next = () => setIndex((i) => (i + 1 < eligible.length ? i + 1 : 0));
+  // Advance to next word or finish session
+  const next = () => {
+    if (index + 1 < eligible.length) {
+      setIndex(index + 1);
+    } else {
+      setSessionFinished(true);
+    }
+  };
+
+  const restart = () => {
+    setIndex(0);
+    setSessionFinished(false);
+  };
 
   // FIX 3: Manual speaker — plays recorded mp3 or falls back to
   // Arabic speech synthesis. Folder matches the source module.
@@ -157,6 +169,51 @@ export default function Typing() {
 
   const activeChar = target ? target.bare[typed.length] : undefined;
   const learned = learnedCount("typing");
+
+  if (sessionFinished) {
+    return (
+      <div className="space-y-6">
+        <Confetti fire={sessionFinished} />
+        <Card className="p-8 text-center">
+          <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-full bg-gold/20 text-4xl shadow-lg shadow-gold/10">
+            🎉
+          </div>
+          <h1 className="text-2xl font-black text-gold">Session Complete!</h1>
+          <p className="mt-2 text-sand/70">
+            You've successfully typed all {eligible.length} words in your current pool.
+          </p>
+
+          <div className="my-8 grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <div className="text-2xl font-bold text-sand">{eligible.length}</div>
+              <div className="text-[10px] uppercase tracking-widest text-sand/40">Words Typed</div>
+            </div>
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <div className="text-2xl font-bold text-ok">{learned}</div>
+              <div className="text-[10px] uppercase tracking-widest text-sand/40">Mastery Level</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Button 
+              className="w-full py-4 text-lg" 
+              onClick={() => window.location.hash = "/letters"}
+            >
+              Master more letters →
+            </Button>
+            <p className="text-xs text-sand/40">
+              Unlocking more letters in the **Letters** module will add more words to this typing pool.
+            </p>
+            <div className="mt-4 border-t border-white/5 pt-4">
+              <Button variant="ghost" onClick={restart}>
+                ↺ Restart this set
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
