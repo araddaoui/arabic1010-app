@@ -256,6 +256,7 @@ export default function Numbers() {
               <HandwritingCanvas
                 letter={item.eastern}
                 expectedDots={0}
+                showPlayground={false}
                 onResult={(_, ok) =>
                   ok && award("numbers", `n${item.n}_glyph`, 10)
                 }
@@ -273,6 +274,7 @@ export default function Numbers() {
               <HandwritingCanvas
                 letter={item.ar}
                 expectedDots={0}
+                showPlayground={false}
                 onResult={(_, ok) =>
                   ok && award("numbers", `n${item.n}_khat`, 15)
                 }
@@ -289,6 +291,7 @@ export default function Numbers() {
                 <HandwritingCanvas
                   letter={item.eastern}
                   expectedDots={0}
+                  showPlayground={false}
                   onResult={(_, ok) =>
                     ok && award("numbers", `n${item.n}_glyph`, 10)
                   }
@@ -301,6 +304,7 @@ export default function Numbers() {
                 <HandwritingCanvas
                   letter={item.ar}
                   expectedDots={0}
+                  showPlayground={false}
                   onResult={(_, ok) =>
                     ok && award("numbers", `n${item.n}_khat`, 15)
                   }

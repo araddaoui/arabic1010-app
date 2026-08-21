@@ -389,6 +389,8 @@ export default function HandwritingCanvas({
             </div>
           </div>
         </div>
+      </div>
+    </div>
       )}
 
       {result && (

@@ -183,8 +183,13 @@ export default function Vocabulary() {
               )}
 
               {tab === "write" && (
-                <HandwritingCanvas letter={word.bare[0]} expectedDots={0} size={240}
-                  onResult={(_, ok) => ok && award("vocab", word.id)} />
+                <HandwritingCanvas 
+                  letter={word.bare[0]} 
+                  expectedDots={0} 
+                  size={240} 
+                  showPlayground={false}
+                  onResult={(_, ok) => ok && award("vocab", word.id)} 
+                />
               )}
 
               {tab === "dictation" && (
