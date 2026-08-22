@@ -262,7 +262,6 @@ export default function HandwritingCanvas({
                 <text
                   x="150" y="90"
                   textAnchor="middle"
-                  dir="rtl"
                   style={{ fontFamily: '"Noto Naskh Arabic", serif', fontSize: 68 }}
                   fill="#4c7fd0"
                 >

@@ -18,6 +18,7 @@ import Admin from "./pages/Admin";
 import PublicInfo from "./pages/PublicInfo";
 import Verify from "./pages/Verify";
 import Certificate from "./pages/Certificate";
+import Journal from "./pages/Journal";
 
 function useHashRoute(): [string, (p: string) => void] {
   const [path, setPath] = useState(() => window.location.hash.replace(/^#/, "") || "/");
@@ -60,6 +61,10 @@ function Shell() {
   if (path.startsWith("/verify")) {
     const id = path.split("/")[2];
     return <Verify id={id} navigate={navigate} />;
+  }
+
+  if (path === "/journal/from-ink-to-interface") {
+    return <Journal navigate={navigate} />;
   }
 
   if (!user) return <Auth />;

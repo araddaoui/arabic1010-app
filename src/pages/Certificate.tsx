@@ -61,7 +61,7 @@ export default function Certificate() {
             <div className="text-4xl font-black tracking-tighter">ARABIC<span className="text-[#C9A227]">1010</span></div>
             
             <div className="mt-4 ar text-4xl font-bold leading-relaxed">
-              شَهَادَةُ الكَفَاءَةِ التَّأْسِيسِيَّةِ فِي الثَّقَافَةِ العَرَبِيَّةِ الرَّقْمِيَّةِ
+              شَهَادَةُ الكَفَاءَةِ التَّأْسِيسِيَّةِ فِي مَحْوِ الأُمِّيَّةِ الرَّقْمِيَّةِ بِاللُّغَةِ العَرَبِيَّةِ
             </div>
             <div className="ar text-xl text-[#C9A227] mt-1">(المُسْتَوَى الأَوَّل)</div>
             

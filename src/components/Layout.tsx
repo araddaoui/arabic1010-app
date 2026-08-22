@@ -173,6 +173,7 @@ export default function Layout({ path, navigate, children }: { path: string; nav
             <a href="#/terms" className="transition hover:text-gold">Terms of Service</a>
             <a href="#/privacy" className="transition hover:text-gold">Privacy Policy</a>
             <a href="#/contact" className="transition hover:text-gold">Contact</a>
+            <a href="https://arabic1010.com/#/journal/from-ink-to-interface" target="_blank" rel="noreferrer" className="transition hover:text-gold">Journal</a>
           </div>
         </footer>
       </div>

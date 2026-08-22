@@ -46,7 +46,7 @@
       
       // Synchronized Bilingual Titles
       #text(size: 26pt, fill: rgb("#1A1A2E"), weight: "bold", font: "Noto Naskh Arabic")[
-        شَهَادَةُ الكَفَاءَةِ التَّأْسِيسِيَّةِ فِي الثَّقَافَةِ العَرَبِيَّةِ الرَّقْمِيَّةِ
+        شَهَادَةُ الكَفَاءَةِ التَّأْسِيسِيَّةِ فِي مَحْوِ الأُمِّيَّةِ الرَّقْمِيَّةِ بِاللُّغَةِ العَرَبِيَّةِ
       ]
       
       #v(0.1cm) // Proportionately raised
