@@ -34,7 +34,7 @@ export default function Letters() {
       const opts = shuffle([l.id, ...shuffle(LETTERS.filter((x) => x.id !== l.id)).slice(0, 3).map((x) => x.id)]);
       qs.push({
         kind: "mcq", id: l.id, prompt: "Listen and tap the letter you hear",
-        audio: { folder: "letters", key: `${l.id}_fatha`, text: vowelForm(l.id, "fatha") },
+        audio: { folder: "alphabet", key: vowelForm(l.id, "fatha"), text: vowelForm(l.id, "fatha") },
         options: opts, answer: opts.indexOf(l.id), optionsAr: true,
       });
     });
@@ -49,7 +49,7 @@ export default function Letters() {
     const w = shuffle(pool)[0];
     qs.push({ kind: "write", id: `${w.id}_write`, prompt: `Write the letter ${w.name} from dictation`, letter: w.id, dots: w.dots });
     const s = shuffle(pool)[0];
-    qs.push({ kind: "speak", id: `${s.id}_speak`, prompt: "Pronounce this syllable", text: vowelForm(s.id, "long_alif"), folder: "letters", fileKey: `${s.id}_long_alif` });
+    qs.push({ kind: "speak", id: `${s.id}_speak`, prompt: "Pronounce this syllable", text: vowelForm(s.id, "long_alif"), folder: "alphabet", fileKey: vowelForm(s.id, "long_alif") });
     return shuffle(qs);
   };
 
@@ -144,7 +144,7 @@ export default function Letters() {
               ))}
             </div>
             <div className="mt-4">
-              <AudioPlayer folder="letters" fileKey={`${letter.id}_${vowel}`} text={vowelForm(letter.id, vowel)}
+              <AudioPlayer folder="alphabet" fileKey={vowelForm(letter.id, vowel)} text={vowelForm(letter.id, vowel)}
                 label={`/audio/letters/${letter.id}_${vowel}.mp3`} />
             </div>
             {letter.id === "ا" && (
