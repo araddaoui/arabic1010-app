@@ -1,7 +1,6 @@
 ﻿
 import os
 import re
-import glob
 
 dest = "public/audio/letters"
 with open("src/data/letters.ts", "r", encoding="utf-8") as f:
@@ -10,25 +9,24 @@ with open("src/data/letters.ts", "r", encoding="utf-8") as f:
 raw_ids = re.findall(r"id:\s*[\x27\x22]([^\x27\x22]+)[\x27\x22]", content)
 letter_ids = [bytes(rid, "utf-8").decode("unicode_escape") if "\\u" in rid else rid for rid in raw_ids]
 
-# Exact permuted short vowel sequence matching disk order
-vowel_map = ["kasra", "dhamma", "fatha", "long_alif", "long_waw", "long_ya"]
-
-files = sorted(glob.glob(os.path.join(dest, "*.mp3")))
-print(f"Found {len(files)} audio files and {len(letter_ids)} letters.")
-
-temp_files = []
-for i, filepath in enumerate(files):
-    temp_name = os.path.join(dest, f"temp_{i}.mp3")
-    os.rename(filepath, temp_name)
-    temp_files.append(temp_name)
-
-index = 0
 for lid in letter_ids:
-    for v in vowel_map:
-        if index < len(temp_files):
-            new_name = os.path.join(dest, f"{lid}_{v}.mp3")
-            os.rename(temp_files[index], new_name)
-            index += 1
+    fatha_file = os.path.join(dest, f"{lid}_fatha.mp3")
+    kasra_file = os.path.join(dest, f"{lid}_kasra.mp3")
+    dhamma_file = os.path.join(dest, f"{lid}_dhamma.mp3")
+    
+    if os.path.exists(fatha_file) and os.path.exists(kasra_file) and os.path.exists(dhamma_file):
+        temp_f = os.path.join(dest, f"{lid}_temp_f.mp3")
+        temp_k = os.path.join(dest, f"{lid}_temp_k.mp3")
+        temp_d = os.path.join(dest, f"{lid}_temp_d.mp3")
+        
+        os.rename(fatha_file, temp_f)
+        os.rename(kasra_file, temp_k)
+        os.rename(dhamma_file, temp_d)
+        
+        # Map current holders to their correct target vowels based on your diagram
+        os.rename(temp_k, fatha_file)  # Fatha gets Fatha sound
+        os.rename(temp_d, kasra_file)  # Kasra gets Kasra sound
+        os.rename(temp_f, dhamma_file) # Dhamma gets Dhamma sound
 
-print("Mathematical vowel permutation applied successfully!")
+print("Exact vowel rotation applied successfully!")
 
