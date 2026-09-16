@@ -1,73 +1,52 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Card, Button, Chip, Modal, LockIcon, Progress } from "@/components/ui";
+import { LETTERS, VOWELS } from "@/data/letters";
+import { Card, Button, Chip, Modal, LockIcon } from "@/components/ui";
 import AudioPlayer from "@/components/AudioPlayer";
-import HandwritingCanvas from "@/components/HandwritingCanvas";
-import Quiz, { shuffle, type Question } from "@/components/Quiz";
+import Quiz from "@/components/Quiz";
 import { UpgradeModal } from "@/components/Layout";
-import { LETTERS, VOWELS, vowelForm, vowelTranslit, type Letter, type VowelKey } from "@/data/letters";
 import { useApp } from "@/lib/store";
 import { cn } from "@/utils/cn";
 
 export default function Letters() {
-  const { isLocked, award, isLearned, learnedCount } = useApp();
   const [idx, setIdx] = useState(0);
-  const [tab, setTab] = useState<"vowels" | "write">("vowels");
-  const [lockOpen, setLockOpen] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
-  const [vowel, setVowel] = useState<VowelKey>("fatha");
+  const [lockOpen, setLockOpen] = useState(false);
+  const { isLearned, isLocked } = useApp();
 
   const letter = LETTERS[idx];
   const locked = isLocked("letters", idx);
-  const learned = learnedCount("letters");
+
+  const generate = () => {
+    return LETTERS.map(l => {
+      const options = [l.id, ...LETTERS.filter(x => x.id !== l.id).slice(0, 3).map(x => x.id)].sort(() => Math.random() - 0.5);
+      return {
+        kind: "mcq" as const,
+        id: l.id,
+        prompt: `What is the letter for ${l.latinName}?`,
+        options,
+        answer: options.indexOf(l.id)
+      };
+    });
+  };
 
   const select = (i: number) => {
-    if (isLocked("letters", i)) { setLockOpen(true); return; }
-    setIdx(i);
-    award("letters", LETTERS[i].id);
+    if (isLocked("letters", i)) {
+      setLockOpen(true);
+    } else {
+      setIdx(i);
+    }
   };
 
-  const generate = (): Question[] => {
-    const pool = LETTERS.filter((_, i) => !isLocked("letters", i));
-    const qs: Question[] = [];
-    shuffle(pool).slice(0, 6).forEach((l) => {
-      const opts = shuffle([l.id, ...shuffle(LETTERS.filter((x) => x.id !== l.id)).slice(0, 3).map((x) => x.id)]);
-      qs.push({
-        kind: "mcq", id: l.id, prompt: "Listen and tap the letter you hear",
-        audio: { folder: "letters", key: `${l.id}_fatha`, text: vowelForm(l.id, "fatha") },
-        options: opts, answer: opts.indexOf(l.id), optionsAr: true,
-      });
-    });
-    shuffle(pool).slice(0, 2).forEach((l) => {
-      const v = shuffle(VOWELS)[0];
-      const opts = shuffle([v.label, ...shuffle(VOWELS.filter((x) => x.key !== v.key)).slice(0, 2).map((x) => x.label)]);
-      qs.push({
-        kind: "mcq", id: `${l.id}_${v.key}`, prompt: "Which vowel is written on this letter?",
-        arabic: vowelForm(l.id, v.key), options: opts, answer: opts.indexOf(v.label),
-      });
-    });
-    const w = shuffle(pool)[0];
-    qs.push({ kind: "write", id: `${w.id}_write`, prompt: `Write the letter ${w.name} from dictation`, letter: w.id, dots: w.dots });
-    const s = shuffle(pool)[0];
-    qs.push({ kind: "speak", id: `${s.id}_speak`, prompt: "Pronounce this syllable", text: vowelForm(s.id, "long_alif"), folder: "letters", fileKey: `${s.id}_long_alif` });
-    return shuffle(qs);
-  };
+  const learnedCount = LETTERS.filter(l => isLearned("letters", l.id)).length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
-      <header className="rounded-2xl border border-mod-letters bg-gradient-to-r from-[#1A3A6B]/60 to-transparent p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-3xl">🔤</span>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-extrabold">Module 2 · Letters & Vowels</h1>
-            <p className="text-sm text-sand/60">28 letters × 6 vowel forms = 168 audio files, plus handwriting.</p>
-          </div>
-          <Button onClick={() => setQuizOpen(true)}>Take the 10-question test</Button>
+    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Arabic Alphabet</h1>
+          <p className="text-sand/60 text-sm mt-1">Master the 28 letters of the Arabic alphabet with audio and visual cues. ({learnedCount}/28 learned)</p>
         </div>
-        <div className="mt-4 flex items-center gap-3">
-          <Progress pct={(learned / 28) * 100} color="#4c7fd0" />
-          <span className="shrink-0 text-xs text-sand/50">{learned}/28</span>
-        </div>
+        <Button onClick={() => setQuizOpen(true)} variant="outline">Test Knowledge</Button>
       </header>
 
       {/* alphabet grid */}
@@ -88,97 +67,83 @@ export default function Letters() {
       </div>
 
       <Card>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl text-3xl"
-            style={{ background: `${letter.color}44`, border: `1px solid ${letter.color}` }}>
-            <span className="ar-c">{letter.id}</span>
-          </span>
-            {/* Side-by-side image/word display */}
-            <div className="flex items-center gap-3 rounded-xl border px-4 py-2" style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
-              <span className="text-3xl">{letter.imageWord?.emoji}</span>
-              <div>
-                <div className="ar text-lg font-bold">{letter.imageWord?.ar}</div>
-                <div className="text-xs text-sand/70">{letter.imageWord?.en}</div>
-              </div>
-            </div>
-          <div>
-            <div className="ar text-xl">{letter.name}</div>
-            <div className="text-xs text-sand/50">{letter.latinName} · sound /{letter.translit}/ · {letter.dots} dot{letter.dots === 1 ? "" : "s"}</div>
+        {/* Navigation & Category Chips Header */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip color={letter.color}>{letter.group}</Chip>
+            <Chip color={letter.sun ? "#C9A227" : "#1A3A6B"}>{letter.sun ? "☀ sun letter" : "🌙 moon letter"}</Chip>
           </div>
-          <Chip color={letter.color}>{letter.group}</Chip>
-          <Chip color={letter.sun ? "#C9A227" : "#1A3A6B"}>{letter.sun ? "☀ sun letter" : "🌙 moon letter"}</Chip>
-          <div className="ml-auto flex gap-2">
+          <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => select(Math.max(0, idx - 1))} disabled={idx === 0}>→ Prev</Button>
             <Button size="sm" variant="ghost" onClick={() => select(Math.min(27, idx + 1))} disabled={idx === 27}>Next ←</Button>
           </div>
         </div>
 
-        
-          {/* Main Letter Image & Example Word */}
-          <div className="my-4 flex items-center justify-between rounded-2xl border px-6 py-4"
-            style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
-            <div className="flex items-center gap-4">
-              <span className="text-4xl">{letter.imageWord?.emoji}</span>
-              <div>
-                <div className="ar text-2xl font-bold">{letter.imageWord?.ar}</div>
-                <div className="text-sm text-sand/70">{letter.imageWord?.en}</div>
-              </div>
-            </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-sand/40">Example Word</span>
-          </div>
-
-<div className="mt-4 flex gap-2">
-          {(["vowels", "write"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold",
-                tab === t ? "border-gold bg-gold/20 text-gold" : "border-white/12 text-sand/60")}>
-              {t === "vowels" ? "Vowel forms" : "Handwriting"}
-            </button>
-          ))}
-        </div>
-
         {locked ? (
-          <div className="mt-6 text-center">
-            <LockIcon className="mx-auto h-8 w-8 text-gold" />
+          <div className="py-12 text-center">
+            <LockIcon className="mx-auto h-12 w-12 text-gold mb-3" />
+            <h3 className="text-xl font-bold">Locked Letter</h3>
             <p className="mt-2 text-sm text-sand/60">This letter is part of Premium.</p>
             <Button className="mt-3" onClick={() => setLockOpen(true)}>Unlock all 28 letters</Button>
           </div>
-        ) : tab === "vowels" ? (
-          <div className="mt-5">
-            <div className="grid gap-3 sm:grid-cols-3">
-              {VOWELS.filter((v) => v.kind === "short").map((v) => (
-                <VowelCard key={v.key} letter={letter} vkey={v.key} label={v.label} active={vowel === v.key} onClick={() => setVowel(v.key)} />
-              ))}
-            </div>
-            <motion.div layout className="my-4 grid place-items-center rounded-2xl border py-8"
-              style={{ background: `${letter.color}22`, borderColor: `${letter.color}88` }}>
-              <span className="ar-c" style={{ fontSize: 96, lineHeight: 1 }}>{letter.id}</span>
-              <span className="mt-2 text-xs uppercase tracking-[0.3em] text-sand/50">base letter</span>
-              <div className="mt-3 flex items-center gap-2 text-sm">
-                <span className="text-3xl">{letter.imageWord?.emoji}</span>
-                <span className="ar text-xl">{letter.imageWord?.ar}</span>
-                <span className="text-sand/50">— {letter.imageWord?.en}</span>
-              </div>
-            </motion.div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {VOWELS.filter((v) => v.kind === "long").map((v) => (
-                <VowelCard key={v.key} letter={letter} vkey={v.key} label={v.label} active={vowel === v.key} onClick={() => setVowel(v.key)} />
-              ))}
-            </div>
-            <div className="mt-4">
-              <AudioPlayer folder="letters" fileKey={`${letter.id}_${vowel}`} text={vowelForm(letter.id, vowel)}
-                label={`/audio/letters/${letter.id}_${vowel}.mp3`} />
-            </div>
-            {letter.id === "ا" && (
-              <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 p-3 text-xs text-sand/70">
-                Note: alif's long vowel is written with a madda — <span className="ar text-lg">آ</span> — never as اا.
-              </p>
-            )}
-          </div>
         ) : (
-          <div className="mt-5">
-            <HandwritingCanvas letter={letter.id} expectedDots={letter.dots}
-              onResult={(_, ok) => ok && award("letters", `${letter.id}_write`, 15)} />
+          <div className="space-y-6">
+            {/* Single Box Layout: Letter Character & Metadata (No Image Box) */}
+            <div className="flex items-center justify-between rounded-2xl border p-6" style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
+              <div className="flex items-center gap-4">
+                <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-4xl shadow-md"
+                  style={{ background: `${letter.color}44`, border: `2px solid ${letter.color}` }}>
+                  <span className="ar-c">{letter.id}</span>
+                </span>
+                <div>
+                  <div className="ar text-3xl font-bold">{letter.name}</div>
+                  <div className="text-xs text-sand/60 mt-1">{letter.latinName} · sound /${letter.translit}/</div>
+                  <div className="text-xs text-sand/50 mt-0.5">{letter.dots} dot{letter.dots === 1 ? "" : "s"}</div>
+                </div>
+              </div>
+              <AudioPlayer folder="letters" fileKey={letter.latinName.toLowerCase()} text={letter.id} label={`Listen to ${letter.name}`} />
+            </div>
+
+            {/* Positional Forms Section */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-sand/50 mb-3">Positional Forms</h3>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                {[
+                  { label: "Isolated", form: letter.isolated },
+                  { label: "Initial", form: letter.initial },
+                  { label: "Medial", form: letter.medial },
+                  { label: "Final", form: letter.final }
+                ].map((pos, pIdx) => (
+                  <div key={pIdx} className="rounded-lg bg-black/20 p-2 border border-white/5">
+                    <div className="text-[10px] text-sand/50 mb-1">{pos.label}</div>
+                    <div className="ar text-xl">{pos.form}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Pronunciation & Vowel Variants (Short & Long) */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold tracking-wide text-sand/80">Pronunciation & Vowel Variants</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {VOWELS.map(v => {
+                  let combined = letter.id + v.symbol;
+                  if (v.key === 'long_alif') combined = letter.id + 'َا';
+                  if (v.key === 'long_ya') combined = letter.id + 'ِي';
+                  if (v.key === 'long_waw') combined = letter.id + 'ُو';
+
+                  return (
+                    <div key={v.key} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div>
+                        <div className="text-xs text-sand/50">{v.label} ({v.kind})</div>
+                        <div className="ar text-2xl mt-1 text-gold">{combined}</div>
+                      </div>
+                      <AudioPlayer folder="letters" fileKey={`${letter.latinName.toLowerCase()}_${v.key}`} text={combined} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </Card>
@@ -188,16 +153,5 @@ export default function Letters() {
       </Modal>
       <UpgradeModal open={lockOpen} onClose={() => setLockOpen(false)} />
     </div>
-  );
-}
-
-function VowelCard({ letter, vkey, label, active, onClick }: { letter: Letter; vkey: VowelKey; label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick}
-      className={cn("rounded-2xl border p-4 text-center transition", active ? "border-gold bg-gold/15" : "border-white/12 hover:bg-white/5")}>
-      <div className="ar-c text-4xl">{vowelForm(letter.id, vkey)}</div>
-      <div className="mt-1 text-sm font-semibold text-gold">{vowelTranslit(letter, vkey)}</div>
-      <div className="text-[11px] text-sand/45">{label}</div>
-    </button>
   );
 }
