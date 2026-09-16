@@ -10,8 +10,8 @@ with open("src/data/letters.ts", "r", encoding="utf-8") as f:
 raw_ids = re.findall(r"id:\s*[\x27\x22]([^\x27\x22]+)[\x27\x22]", content)
 letter_ids = [bytes(rid, "utf-8").decode("unicode_escape") if "\\u" in rid else rid for rid in raw_ids]
 
-# Correct short vowel mapping order
-vowel_map = ["fatha", "kasra", "dhamma", "long_alif", "long_waw", "long_ya"]
+# Correct alphabetical mapping order matching disk sorting
+vowel_map = ["dhamma", "fatha", "kasra", "long_alif", "long_waw", "long_ya"]
 
 files = sorted(glob.glob(os.path.join(dest, "*.mp3")))
 print(f"Found {len(files)} audio files and {len(letter_ids)} letters.")
@@ -30,5 +30,5 @@ for lid in letter_ids:
             os.rename(temp_files[index], new_name)
             index += 1
 
-print("Audio mapping corrected successfully!")
+print("Vowel mapping corrected successfully!")
 
