@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, Button, Chip, Modal, LockIcon, Progress } from "@/components/ui";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -57,10 +57,10 @@ export default function Letters() {
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="rounded-2xl border border-mod-letters bg-gradient-to-r from-[#1A3A6B]/60 to-transparent p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-3xl">ðŸ”¤</span>
+          <span className="text-3xl">🔤</span>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-extrabold">Module 2 Â· Letters & Vowels</h1>
-            <p className="text-sm text-sand/60">28 letters Ã— 6 vowel forms = 168 audio files, plus handwriting.</p>
+            <h1 className="text-xl font-extrabold">Module 2 · Letters & Vowels</h1>
+            <p className="text-sm text-sand/60">28 letters × 6 vowel forms = 168 audio files, plus handwriting.</p>
           </div>
           <Button onClick={() => setQuizOpen(true)}>Take the 10-question test</Button>
         </div>
@@ -80,7 +80,7 @@ export default function Letters() {
                 i === idx ? "border-gold bg-gold/20" : "border-white/10 hover:bg-white/5", lock && "opacity-45")}
               style={i === idx ? {} : { background: `${l.color}22` }}>
               <span className="ar-c text-2xl">{l.id}</span>
-              {isLearned("letters", l.id) && <span className="absolute right-1 top-1 text-[9px] text-ok">âœ“</span>}
+              {isLearned("letters", l.id) && <span className="absolute right-1 top-1 text-[9px] text-ok">✓</span>}
               {lock && <LockIcon className="absolute bottom-1 left-1 h-3 w-3 text-gold/70" />}
             </button>
           );
@@ -95,13 +95,13 @@ export default function Letters() {
           </span>
           <div>
             <div className="ar text-xl">{letter.name}</div>
-            <div className="text-xs text-sand/50">{letter.latinName} Â· sound /{letter.translit}/ Â· {letter.dots} dot{letter.dots === 1 ? "" : "s"}</div>
+            <div className="text-xs text-sand/50">{letter.latinName} · sound /{letter.translit}/ · {letter.dots} dot{letter.dots === 1 ? "" : "s"}</div>
           </div>
           <Chip color={letter.color}>{letter.group}</Chip>
-          <Chip color={letter.sun ? "#C9A227" : "#1A3A6B"}>{letter.sun ? "â˜€ sun letter" : "ðŸŒ™ moon letter"}</Chip>
+          <Chip color={letter.sun ? "#C9A227" : "#1A3A6B"}>{letter.sun ? "☀ sun letter" : "🌙 moon letter"}</Chip>
           <div className="ml-auto flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => select(Math.max(0, idx - 1))} disabled={idx === 0}>â†’ Prev</Button>
-            <Button size="sm" variant="ghost" onClick={() => select(Math.min(27, idx + 1))} disabled={idx === 27}>Next â†</Button>
+            <Button size="sm" variant="ghost" onClick={() => select(Math.max(0, idx - 1))} disabled={idx === 0}>→ Prev</Button>
+            <Button size="sm" variant="ghost" onClick={() => select(Math.min(27, idx + 1))} disabled={idx === 27}>Next ←</Button>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export default function Letters() {
               <div className="mt-3 flex items-center gap-2 text-sm">
                 <span className="text-3xl">{letter.imageWord.emoji}</span>
                 <span className="ar text-xl">{letter.imageWord.ar}</span>
-                <span className="text-sand/50">â€” {letter.imageWord.en}</span>
+                <span className="text-sand/50">— {letter.imageWord.en}</span>
               </div>
             </motion.div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -147,9 +147,9 @@ export default function Letters() {
               <AudioPlayer folder="letters" fileKey={vowelForm(letter.id, vowel)} text={vowelForm(letter.id, vowel)}
                 label={`/audio/letters/${letter.id}_${vowel}.mp3`} />
             </div>
-            {letter.id === "Ø§" && (
+            {letter.id === "ا" && (
               <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 p-3 text-xs text-sand/70">
-                Note: alif's long vowel is written with a madda â€” <span className="ar text-lg">Ø¢</span> â€” never as Ø§Ø§.
+                Note: alif's long vowel is written with a madda — <span className="ar text-lg">آ</span> — never as اا.
               </p>
             )}
           </div>
@@ -179,4 +179,3 @@ function VowelCard({ letter, vkey, label, active, onClick }: { letter: Letter; v
     </button>
   );
 }
-
