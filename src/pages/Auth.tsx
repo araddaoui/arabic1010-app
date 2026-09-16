@@ -4,7 +4,7 @@ import { Button } from "@/components/ui";
 import { useApp } from "@/lib/store";
 
 export default function Auth() {
-  const { signIn, signUp, signInGoogle } = useApp();
+  const { signIn, signUp } = useApp();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("learner@arabic1010.app");

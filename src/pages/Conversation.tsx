@@ -235,7 +235,7 @@ export default function Conversation() {
               <div className="text-[10px] uppercase tracking-[0.2em] text-gold">{g.group}</div>
               <div className="mt-2 space-y-1.5">
                 {g.items.map((it) => (
-                  <button key={it.ar} onClick={() => play(audioPath("dialogue", it.en.toLowerCase()), it.ar)}
+                  <button key={it.ar} onClick={() => play(audioPath("dialogue", it.ar), it.ar)}
                     className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1 text-left hover:bg-white/5">
                     <span className="ar text-lg">{it.ar}</span>
                     <span className="text-xs text-sand/50">{it.en}</span>
