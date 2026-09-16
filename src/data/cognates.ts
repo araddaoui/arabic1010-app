@@ -49,7 +49,7 @@ export const COGNATES: Cognate[] = [
   { id: "syrup", ar: "شَراب", en: "syrup", translit: "sharāb", category: "Food", trail: ["شَراب sharāb (drink)", "Latin sirupus", "syrup"], note: "Also gives us sherbet and sorbet.", emoji: "🍯" },
   { id: "safari", ar: "سَفَر", en: "safari", translit: "safar", category: "Travel", trail: ["سَفَر safar (journey)", "Swahili safari", "safari"], note: "Travelled to English via the Swahili coast.", emoji: "🧭" },
   { id: "checkmate", ar: "شاه مات", en: "checkmate", translit: "shāh māt", category: "Game", trail: ["شاه مات shāh māt (the king is helpless)", "Old French eschec mat", "checkmate"], note: "A Persian-Arabic phrase carried by the game of chess.", emoji: "♟️" },
-  { id: "tuna", ar: "تون", en: "tuna", translit: "tūn", category: "Food", trail: ["تُون tūn", "Spanish atún", "tuna"], note: "Mediterranean fishing vocabulary.", emoji: "🐟" },
+  { id: "tuna", ar: "تُن", en: "tuna", translit: "tūn", category: "Food", trail: ["تُون tūn", "Spanish atún", "tuna"], note: "Mediterranean fishing vocabulary.", emoji: "🐟" },
   { id: "loofah", ar: "لوفة", en: "loofah", translit: "līfa", category: "Nature", trail: ["لِيفَة līfa (plant fibres)", "Latin luffa", "loofah"], note: "The dried gourd used as a sponge.", emoji: "🧽" },
   { id: "elixir", ar: "الإكسير", en: "elixir", translit: "al-iksīr", category: "Science", trail: ["الإكسير al-iksīr (philosopher's stone)", "Medieval Latin elixir", "elixir"], note: "A core term of medieval alchemy.", emoji: "⚗️" },
   { id: "alcohol", ar: "الكُحول", en: "alcohol", translit: "al-kuḥūl", category: "Science", trail: ["الكُحْل al-kuḥl (fine powder)", "Latin alcohol", "alcohol"], note: "Originally the kohl eye powder, then any distilled essence.", emoji: "🧪" },

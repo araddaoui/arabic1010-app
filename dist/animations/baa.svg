@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <path d="M240,160 C220,155 180,150 150,152 C120,155 90,162 60,172" fill="none" stroke="#FFD54A" stroke-width="8" stroke-linecap="round"
+    stroke-dasharray="200" stroke-dashoffset="200">
+    <animate attributeName="stroke-dashoffset" from="200" to="0" dur="2s" fill="freeze" begin="0.3s"/>
+  </path>
+  <circle cx="150" cy="200" r="6" fill="#FFD54A" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="2.5s"/>
+  </circle>
+</svg>

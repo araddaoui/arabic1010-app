@@ -6,8 +6,8 @@ import AudioPlayer from '@/components/AudioPlayer';
 import { Button } from '@/components/ui';
 import { UpgradeModal } from '@/components/Layout';
 
-// Base map served from public/images/ — no external dependency.
-const MAP_IMG = '/images/arab-world-map.jpg';
+// Base map served from public/ — no external dependency.
+const MAP_IMG = '/arab-world-map.png';
 
 export function Module6Map() {
   const { user, award } = useApp();
@@ -15,6 +15,7 @@ export function Module6Map() {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
   const [testMode, setTestMode] = useState<'find' | 'name' | 'hear' | null>(null);
   const [testTarget, setTestTarget] = useState<typeof countries[0] | null>(null);
+  const [selectedCountryForMap, setSelectedCountryForMap] = useState<typeof countries[0] | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
@@ -32,6 +33,12 @@ export function Module6Map() {
     }
     award('map', c.id);
     setSelectedCountry(c);
+  };
+
+  const regionCompletion = (region: string) => {
+    const regionCountryIds = regions.find((r) => r.name === region)?.countries ?? [];
+    const complete = regionCountryIds.filter((id) => countriesLearned.includes(id)).length;
+    return `${complete}/${regionCountryIds.length}`;
   };
 
   const startTest = (mode: 'find' | 'name' | 'hear') => {
@@ -115,8 +122,6 @@ export function Module6Map() {
     );
   }
 
-  const [selectedCountryForMap, setSelectedCountryForMap] = useState<typeof countries[0] | null>(null);
-
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -157,21 +162,27 @@ export function Module6Map() {
                 if (activeRegion && c.region !== activeRegion) return null;
                 const isSelected = selectedCountryForMap?.id === c.id || selectedCountry?.id === c.id;
                 const isHovered = hoveredCountry === c.id;
+                const isLearned = countriesLearned.includes(c.id);
 
-                let fillColor = 'transparent';
-                let strokeColor = 'none';
-                let strokeW = 0;
-                let opacity = 0;
+                const baseRadius = Math.max(4, Math.min(8, c.r * 0.12));
+                const markerRadius = isSelected
+                  ? Math.max(30, Math.min(78, c.r * 0.9 + Math.min(16, c.nameArabic.length * 1.4)))
+                  : baseRadius;
+                const labelFontSize = isSelected ? Math.max(12, Math.min(18, markerRadius * 0.28)) : 0;
+
+                let fillColor = 'rgba(255, 200, 0, 0.95)';
+                let strokeColor = '#FF8F00';
+                let strokeW = 1.5;
+                let opacity = 0.95;
 
                 if (isSelected) {
-                  fillColor = 'rgba(255,200,0,0.25)';  // yellow highlight
-                  opacity = 1;
+                  fillColor = 'rgba(255, 200, 0, 0.2)';
                   strokeColor = '#FF8F00';
                   strokeW = 2.5;
-                } else if (isHovered) {
-                  fillColor = 'rgba(0,0,0,0.1)';  // subtle on hover
                   opacity = 1;
-                  strokeColor = '#333';
+                } else if (isHovered) {
+                  fillColor = 'rgba(255, 200, 0, 0.85)';
+                  strokeColor = '#D89B00';
                   strokeW = 1.5;
                 }
 
@@ -184,36 +195,70 @@ export function Module6Map() {
                     className="cursor-pointer"
                     style={{ cursor: 'pointer' }}
                   >
-                    {/* The clickable circle — invisible at rest, yellow on select */}
                     <circle
                       cx={c.cx}
                       cy={c.cy}
-                      r={c.r}
+                      r={markerRadius}
                       fill={fillColor}
                       stroke={strokeColor}
                       strokeWidth={strokeW}
                       opacity={opacity}
-                      className="transition-all duration-150"
+                      className="transition-all duration-200"
                       pointerEvents="all"
                     />
-                    {/* Arabic name shown inside the yellow circle when selected */}
-                    {(isSelected || isHovered) && (
-                      <text
-                        x={c.cx}
-                        y={c.cy}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="#1A1A2E"
-                        fontSize={Math.max(14, Math.min(22, c.r * 0.5))}
-                        fontWeight="bold"
-                        fontFamily="'Noto Naskh Arabic', serif"
-                        className="pointer-events-none"
-                        stroke="#FFFFFF"
-                        strokeWidth="3"
-                        paintOrder="stroke"
-                      >
-                        {c.nameArabic}
-                      </text>
+                    {isLearned && !isSelected && (
+                      <circle
+                        cx={c.cx}
+                        cy={c.cy}
+                        r={markerRadius + 4}
+                        fill="none"
+                        stroke="#1D9E75"
+                        strokeWidth={1}
+                        opacity={0.65}
+                        className="transition-all duration-200"
+                      />
+                    )}
+                    {isSelected && (
+                      <>
+                        <circle
+                          cx={c.cx}
+                          cy={c.cy}
+                          r={markerRadius + 6}
+                          fill="none"
+                          stroke="#FFB100"
+                          strokeWidth={2}
+                          opacity={0.55}
+                          className="transition-all duration-200"
+                        />
+                        <text
+                          x={c.cx}
+                          y={c.cy - labelFontSize * 0.95}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="#1A1A2E"
+                          fontSize={labelFontSize}
+                          fontWeight="bold"
+                          className="pointer-events-none"
+                        >
+                          {c.flag ?? '🏳️'}
+                        </text>
+                        <text
+                          x={c.cx}
+                          y={c.cy + labelFontSize * 0.9}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="#1A1A2E"
+                          fontSize={labelFontSize}
+                          fontWeight="bold"
+                          fontFamily="'Noto Naskh Arabic', serif"
+                          className="pointer-events-none"
+                          stroke="#FFFFFF"
+                          strokeWidth="3"
+                          paintOrder="stroke"
+                        >
+                          {c.nameArabic}
+                        </text>
+                      </>
                     )}
                   </g>
                 );
@@ -223,6 +268,55 @@ export function Module6Map() {
         </div>
 
         <div className="xl:col-span-2 space-y-3 max-h-[500px] overflow-y-auto pr-1">
+          {selectedCountry ? (
+            <div className="rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-xl shadow-black/20">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-4xl">{selectedCountry.flag ?? '🏳️'}</div>
+                <div className="min-w-0">
+                  <div className="text-2xl font-bold leading-none text-gold ar">{selectedCountry.nameArabic}</div>
+                  <div className="text-sm text-sand/80">{selectedCountry.nameEnglish}</div>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-[11px] uppercase tracking-widest text-sand/40">Region</div>
+                  <div className="mt-2 text-base font-semibold">{selectedCountry.region}</div>
+                  <div className="mt-1 text-xs text-sand/50">{regionCompletion(selectedCountry.region)} complete</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-[11px] uppercase tracking-widest text-sand/40">Country status</div>
+                  <div className="mt-2 text-base font-semibold">{countriesLearned.includes(selectedCountry.id) ? 'Learned' : 'New discovery'}</div>
+                  <div className="mt-1 text-xs text-sand/50">Click again anytime to review and practise.</div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-sand/40">Pronunciation practice</p>
+                    <p className="mt-1 text-sm text-sand/70">Hear the native name and record yourself.</p>
+                  </div>
+                  <div className="rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">+10 XP</div>
+                </div>
+                <AudioPlayer folder="countries" fileKey={selectedCountry.id} text={selectedCountry.nameArabic} label="Native speaker vs your voice" />
+              </div>
+
+              <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-widest text-sand/40">Cultural quick fact</div>
+                    <div className="mt-2 text-sm leading-6 text-sand/80">{selectedCountry.fact}</div>
+                  </div>
+                  <span className="rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">{selectedCountry.region}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-xl shadow-black/20">
+              <div className="text-sand/60">Select a country on the map to reveal its flag, pronunciation practice, and quick culture reward.</div>
+            </div>
+          )}
+
           <AnimatePresence>
             {displayCountries.map(c => {
               const isSelected = selectedCountry?.id === c.id;

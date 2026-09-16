@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <path d="M240,165 C220,160 180,155 150,157 C120,160 90,167 60,177" fill="none" stroke="#FFD54A" stroke-width="8" stroke-linecap="round"
+    stroke-dasharray="200" stroke-dashoffset="200">
+    <animate attributeName="stroke-dashoffset" from="200" to="0" dur="2s" fill="freeze" begin="0.3s"/>
+  </path>
+  <circle cx="138" cy="130" r="5" fill="#FFD54A" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="2.5s"/>
+  </circle>
+  <circle cx="162" cy="130" r="5" fill="#FFD54A" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="2.8s"/>
+  </circle>
+</svg>

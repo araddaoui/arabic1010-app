@@ -90,18 +90,18 @@ export default function Cognates() {
             return (
               <motion.button layout key={c.id} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                 onClick={() => open(c)} className="text-left">
-                <Card className={cn("h-full transition hover:border-gold/60", lock && "opacity-60")}>
+                <Card className={cn("h-full min-h-[260px] transition hover:border-gold/60", lock && "opacity-60")}>
                   <div className="flex items-start justify-between">
-                    <span className="text-2xl">{c.emoji}</span>
+                    <span className="text-4xl sm:text-5xl">{c.emoji}</span>
                     <div className="flex items-center gap-1">
                       {done && <span className="text-xs text-ok">✓</span>}
                       {lock && <LockIcon className="text-gold/70" />}
                     </div>
                   </div>
-                  <div className="ar-c mt-2 text-4xl leading-tight">{c.ar}</div>
-                  <div className="mt-1 text-center text-xs text-sand/45">{c.translit}</div>
-                  <div className="mt-2 text-center font-bold capitalize">{c.en}</div>
-                  <div className="mt-3 flex justify-center"><Chip color="#7B2020">{c.category}</Chip></div>
+                  <div className="mt-4 ar-c text-4xl sm:text-5xl leading-tight">{c.ar}</div>
+                  <div className="mt-2 text-center text-sm text-sand/45">{c.translit}</div>
+                  <div className="mt-4 text-center text-lg font-bold capitalize">{c.en}</div>
+                  <div className="mt-4 flex justify-center"><Chip color="#7B2020">{c.category}</Chip></div>
                 </Card>
               </motion.button>
             );

@@ -5,6 +5,7 @@ export interface Country {
   audioFile: string;
   fact: string;
   region: string;
+  flag?: string;
   cx: number;   // circle center X on the 1408×768 coordinate grid
   cy: number;   // circle center Y
   r: number;    // circle radius

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <path d="M80,190 C80,172 92,158 108,150 C125,142 145,142 160,152 C172,162 178,178 178,192 C178,196 182,202 190,206 C205,212 218,222 228,235 C235,245 234,258 224,264 C214,268 202,264 195,255" fill="none" stroke="#FFD54A" stroke-width="7" stroke-linecap="round"
+    stroke-dasharray="400" stroke-dashoffset="400">
+    <animate attributeName="stroke-dashoffset" from="400" to="0" dur="3s" fill="freeze" begin="0.3s"/>
+  </path>
+</svg>
