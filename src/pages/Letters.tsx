@@ -105,7 +105,21 @@ export default function Letters() {
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
+        
+          {/* Main Letter Image & Example Word */}
+          <div className="my-4 flex items-center justify-between rounded-2xl border px-6 py-4"
+            style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">{letter.imageWord?.emoji}</span>
+              <div>
+                <div className="ar text-2xl font-bold">{letter.imageWord?.ar}</div>
+                <div className="text-sm text-sand/70">{letter.imageWord?.en}</div>
+              </div>
+            </div>
+            <span className="text-xs uppercase tracking-[0.2em] text-sand/40">Example Word</span>
+          </div>
+
+<div className="mt-4 flex gap-2">
           {(["vowels", "write"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold",
