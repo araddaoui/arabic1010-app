@@ -93,6 +93,14 @@ export default function Letters() {
             style={{ background: `${letter.color}44`, border: `1px solid ${letter.color}` }}>
             <span className="ar-c">{letter.id}</span>
           </span>
+            {/* Side-by-side image/word display */}
+            <div className="flex items-center gap-3 rounded-xl border px-4 py-2" style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
+              <span className="text-3xl">{letter.imageWord?.emoji}</span>
+              <div>
+                <div className="ar text-lg font-bold">{letter.imageWord?.ar}</div>
+                <div className="text-xs text-sand/70">{letter.imageWord?.en}</div>
+              </div>
+            </div>
           <div>
             <div className="ar text-xl">{letter.name}</div>
             <div className="text-xs text-sand/50">{letter.latinName} · sound /{letter.translit}/ · {letter.dots} dot{letter.dots === 1 ? "" : "s"}</div>
