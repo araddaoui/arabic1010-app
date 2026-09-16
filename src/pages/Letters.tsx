@@ -133,9 +133,9 @@ export default function Letters() {
               <span className="ar-c" style={{ fontSize: 96, lineHeight: 1 }}>{letter.id}</span>
               <span className="mt-2 text-xs uppercase tracking-[0.3em] text-sand/50">base letter</span>
               <div className="mt-3 flex items-center gap-2 text-sm">
-                <span className="text-3xl">{letter.imageWord.emoji}</span>
-                <span className="ar text-xl">{letter.imageWord.ar}</span>
-                <span className="text-sand/50">— {letter.imageWord.en}</span>
+                <span className="text-3xl">{letter.imageWord?.emoji}</span>
+                <span className="ar text-xl">{letter.imageWord?.ar}</span>
+                <span className="text-sand/50">— {letter.imageWord?.en}</span>
               </div>
             </motion.div>
             <div className="grid gap-3 sm:grid-cols-3">

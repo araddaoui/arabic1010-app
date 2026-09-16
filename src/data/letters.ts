@@ -30,7 +30,12 @@ export interface Letter {
   color: string;
   group: string;
   sun: boolean;
-  ;
+
+  imageWord?: {
+    ar: string;
+    en: string;
+    emoji: string;
+  };
 }
 
 export const LETTERS: Letter[] = [
