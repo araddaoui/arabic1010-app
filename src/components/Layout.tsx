@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button, Progress, Modal, Confetti } from "@/components/ui";
 import { useApp, levelFromXp, MODULE_META, BADGES, DEV_UNLOCK_ALL, type ModuleKey } from "@/lib/store";
 import { cn } from "@/utils/cn";
+import { isProductionMode } from "@/lib/config";
+import { getStoredSupabaseSession } from "@/lib/auth";
+import { createCheckoutSession, type BillingPlan } from "@/lib/billing";
 
 const NAV: { path: string; label: string; icon: string }[] = [
   { path: "/", label: "Dashboard", icon: "🏠" },
@@ -20,12 +23,34 @@ const NAV: { path: string; label: string; icon: string }[] = [
 
 export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { upgrade } = useApp();
-  const [plan, setPlan] = useState<"monthly" | "yearly" | "lifetime">("monthly");
+  const [plan, setPlan] = useState<BillingPlan>("monthly");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const plans = {
     monthly: { price: "$5", per: "/month", note: "14-day free trial" },
-    yearly: { price: "$39.99", per: "/year", note: "Save 33%" },
-    lifetime: { price: "$29.99", per: " once", note: "Early access to new content" },
+    yearly: { price: "$39", per: "/year", note: "Save 35%" },
   } as const;
+  const startCheckout = async () => {
+    if (!isProductionMode) {
+      upgrade();
+      onClose();
+      return;
+    }
+    const session = getStoredSupabaseSession();
+    if (!session?.access_token) {
+      setError("Please sign in again before starting checkout.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const checkout = await createCheckoutSession(plan, session.access_token);
+      window.location.assign(checkout.url);
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : "Checkout is unavailable.");
+      setBusy(false);
+    }
+  };
   return (
     <Modal open={open} onClose={onClose}>
       <div className="text-center">
@@ -33,7 +58,7 @@ export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => 
         <h3 className="mt-2 text-xl font-extrabold">Unlock all of Arabic1010</h3>
         <p className="mt-1 text-sm text-sand/60">You reached a premium item. Free covers a taster of every module.</p>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2">
         {(Object.keys(plans) as (keyof typeof plans)[]).map((k) => (
           <button key={k} onClick={() => setPlan(k)}
             className={cn("rounded-xl border p-3 text-center transition", plan === k ? "border-gold bg-gold/15" : "border-white/12 hover:bg-white/5")}>
@@ -48,9 +73,12 @@ export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => 
         ))}
       </ul>
       <div className="mt-3 text-center text-xs text-sand/40">{plans[plan].note} · Secure checkout by Stripe</div>
+      {error && <div className="mt-2 rounded-lg border border-err/50 bg-err/15 p-2 text-center text-xs text-red-200">{error}</div>}
       <div className="mt-4 flex gap-2">
         <Button variant="ghost" className="flex-1" onClick={onClose}>Not now</Button>
-        <Button className="flex-1" onClick={() => { upgrade(); onClose(); }}>Continue to Stripe →</Button>
+        <Button className="flex-1" onClick={() => void startCheckout()} disabled={busy}>
+          {busy ? "Opening checkout…" : "Continue to Stripe →"}
+        </Button>
       </div>
     </Modal>
   );

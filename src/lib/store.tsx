@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { isProductionMode } from "@/lib/config";
+import { getStoredSupabaseSession, signInWithSupabase, signOutWithSupabase, signUpWithSupabase } from "@/lib/auth";
+import { hasActiveEntitlement } from "@/lib/supabase";
 
 export type ModuleKey = "cognates" | "letters" | "numbers" | "vocab" | "dialogue" | "map" | "typing";
 
@@ -196,11 +199,8 @@ const FREE_LIMITS: Record<ModuleKey, number> = {
  *
  * Set this to `false` to restore freemium gating before deploying.
  */
-// Unlocked by DEFAULT. Gating only switches on when the env var is the exact
-// string 'false'. The previous `=== 'true'` test failed closed: with no .env
-// file present the value is `undefined`, which silently re-locked every
-// premium item during development.
-export const DEV_UNLOCK_ALL = import.meta.env.VITE_DEV_UNLOCK_ALL !== 'false';
+// Production-safe default: content unlocks only when explicitly enabled for QA.
+export const DEV_UNLOCK_ALL = import.meta.env.VITE_DEV_UNLOCK_ALL === "true";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [db, setDb] = useState<DB>(load);
@@ -214,6 +214,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => db.users.find((u) => u.id === db.currentUserId) ?? null,
     [db]
   );
+
+  useEffect(() => {
+    if (!isProductionMode) return;
+    const session = getStoredSupabaseSession();
+    const authUser = session?.user;
+    if (!session?.access_token || !authUser?.id || !authUser.email) return;
+    const authEmail = authUser.email;
+    let cancelled = false;
+    void hasActiveEntitlement(session)
+      .catch(() => false)
+      .then((premium) => {
+        if (cancelled) return;
+        const profile = seedProfile({
+          id: authUser.id,
+          email: authEmail,
+          name: authUser.user_metadata?.display_name || authEmail.split("@")[0],
+          premium,
+        });
+        setDb((current) => ({
+          ...current,
+          users: current.users.some((item) => item.id === profile.id)
+            ? current.users.map((item) => item.id === profile.id ? { ...item, premium } : item)
+            : [...current.users, profile],
+          currentUserId: profile.id,
+        }));
+      });
+    return () => { cancelled = true; };
+  }, [db.currentUserId]);
 
   const showToast = useCallback((s: string) => {
     setToast(s);
@@ -263,6 +291,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn: Ctx["signIn"] = async (email, password) => {
+    if (isProductionMode) {
+      try {
+        const session = await signInWithSupabase(email, password);
+        const authUser = session.user;
+        if (!authUser?.id || !authUser.email) return "Supabase returned an incomplete user session.";
+        const premium = await hasActiveEntitlement(session).catch(() => false);
+        const profile = seedProfile({
+          id: authUser.id,
+          email: authUser.email,
+          name: authUser.user_metadata?.display_name || authUser.email.split("@")[0],
+          premium,
+        });
+        setDb((d) => ({
+          ...d,
+          users: d.users.some((u) => u.id === profile.id)
+            ? d.users.map((u) => u.id === profile.id ? { ...u, premium } : u)
+            : [...d.users, profile],
+          currentUserId: profile.id,
+        }));
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : "Supabase sign-in failed.";
+      }
+    }
     await new Promise((r) => setTimeout(r, 450));
     const found = db.users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
     if (!found) return "No account found with that email.";
@@ -276,6 +328,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp: Ctx["signUp"] = async (name, email, password) => {
+    if (isProductionMode) {
+      try {
+        const session = await signUpWithSupabase(name, email, password);
+        if (!session.access_token) return "Check your email to confirm your new account.";
+        const authUser = session.user;
+        if (!authUser?.id || !authUser.email) return "Check your email to confirm your new account.";
+        const profile = seedProfile({ id: authUser.id, email: authUser.email, name });
+        setDb((d) => ({ ...d, users: [...d.users, profile], currentUserId: profile.id }));
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : "Supabase sign-up failed.";
+      }
+    }
     await new Promise((r) => setTimeout(r, 550));
     if (db.users.some((u) => u.email.toLowerCase() === email.trim().toLowerCase()))
       return "An account with that email already exists.";
@@ -292,7 +357,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDb((d) => ({ ...d, currentUserId: g.id, users: d.users.map((u) => (u.id === g.id ? checkBadges(touchStreak(u)) : u)) }));
   };
 
-  const signOut = () => setDb((d) => ({ ...d, currentUserId: null }));
+  const signOut = () => {
+    if (isProductionMode) void signOutWithSupabase();
+    setDb((d) => ({ ...d, currentUserId: null }));
+  };
 
   const award: Ctx["award"] = (module, itemKey, xp) => {
     patchUser((u) => {

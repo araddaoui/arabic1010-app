@@ -93,14 +93,6 @@ export default function Letters() {
             style={{ background: `${letter.color}44`, border: `1px solid ${letter.color}` }}>
             <span className="ar-c">{letter.id}</span>
           </span>
-            {/* Side-by-side image/word display */}
-            <div className="flex items-center gap-3 rounded-xl border px-4 py-2" style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
-              <span className="text-3xl">{letter.imageWord?.emoji}</span>
-              <div>
-                <div className="ar text-lg font-bold">{letter.imageWord?.ar}</div>
-                <div className="text-xs text-sand/70">{letter.imageWord?.en}</div>
-              </div>
-            </div>
           <div>
             <div className="ar text-xl">{letter.name}</div>
             <div className="text-xs text-sand/50">{letter.latinName} · sound /{letter.translit}/ · {letter.dots} dot{letter.dots === 1 ? "" : "s"}</div>
@@ -113,21 +105,7 @@ export default function Letters() {
           </div>
         </div>
 
-        
-          {/* Main Letter Image & Example Word */}
-          <div className="my-4 flex items-center justify-between rounded-2xl border px-6 py-4"
-            style={{ background: `${letter.color}15`, borderColor: `${letter.color}55` }}>
-            <div className="flex items-center gap-4">
-              <span className="text-4xl">{letter.imageWord?.emoji}</span>
-              <div>
-                <div className="ar text-2xl font-bold">{letter.imageWord?.ar}</div>
-                <div className="text-sm text-sand/70">{letter.imageWord?.en}</div>
-              </div>
-            </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-sand/40">Example Word</span>
-          </div>
-
-<div className="mt-4 flex gap-2">
+        <div className="mt-4 flex gap-2">
           {(["vowels", "write"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold",
@@ -155,9 +133,9 @@ export default function Letters() {
               <span className="ar-c" style={{ fontSize: 96, lineHeight: 1 }}>{letter.id}</span>
               <span className="mt-2 text-xs uppercase tracking-[0.3em] text-sand/50">base letter</span>
               <div className="mt-3 flex items-center gap-2 text-sm">
-                <span className="text-3xl">{letter.imageWord?.emoji}</span>
-                <span className="ar text-xl">{letter.imageWord?.ar}</span>
-                <span className="text-sand/50">— {letter.imageWord?.en}</span>
+                <span className="text-3xl">{letter.imageWord.emoji}</span>
+                <span className="ar text-xl">{letter.imageWord.ar}</span>
+                <span className="text-sand/50">— {letter.imageWord.en}</span>
               </div>
             </motion.div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -177,8 +155,11 @@ export default function Letters() {
           </div>
         ) : (
           <div className="mt-5">
-            <HandwritingCanvas letter={letter.id} expectedDots={letter.dots}
-              onResult={(_, ok) => ok && award("letters", `${letter.id}_write`, 15)} />
+            <HandwritingCanvas
+              letter={letter.id}
+              expectedDots={letter.dots}
+              onResult={(_, ok) => ok && award("letters", `${letter.id}_write`, 15)}
+            />
           </div>
         )}
       </Card>
