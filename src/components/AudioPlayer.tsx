@@ -12,11 +12,14 @@ import {
   recordClip,
   loadReference,
   assessAgainstReference,
+  assessDebugEnabled,
   PASS_SCORE,
   scoreBand,
   bandMessage,
   type ScoreBand,
+  type AssessmentMetrics,
 } from "@/lib/audio";
+import { contrastKeys } from "@/lib/contrast";
 import { cn } from "@/utils/cn";
 
 function estimateFromLevels(captured: number[]) {
@@ -89,8 +92,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const [levels, setLevels] = useState<number[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [heard, setHeard] = useState<string>("");
-  const [speechError, setSpeechError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ title: string; body: string } | null>(null);
   const [quality, setQuality] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<AssessmentMetrics | null>(null);
   const [progressIdx, setProgressIdx] = useState(-1);
   const recRef = useRef<{ stop: () => void } | null>(null);
   const model = hashBars(fileKey + text);
@@ -98,7 +102,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const bandStyle = band ? BAND_STYLE[band] : null;
 
   useEffect(() => () => { stopAll(); recRef.current?.stop(); }, []);
-  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setSpeechError(null); setQuality(null); }, [fileKey]);
+  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); }, [fileKey]);
 
   const doPlay = async (r = rate) => {
     setPlaying(true);
@@ -116,7 +120,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 
   const record = async () => {
     if (recording) return;
-    setRecording(true); setScore(null); setHeard(""); setSpeechError(null); setQuality(null);
+    setRecording(true); setScore(null); setHeard(""); setNotice(null); setQuality(null); setMetrics(null);
     const captured: number[] = [];
     let stream: MediaStream | null = null;
     let analyzer: { stop: () => void } | null = null;
@@ -157,7 +161,10 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     setLevels(finalLevels.length ? finalLevels : hashBars(text + "u"));
 
     if (!stream) {
-      setSpeechError("Microphone access was blocked. Allow microphone access and try again.");
+      setNotice({
+        title: "Microphone access blocked",
+        body: "Allow microphone access and try again.",
+      });
       setScore(null);
       return;
     }
@@ -165,8 +172,21 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     // 1) Compare against the native-speaker model — the primary, browser-only score.
     if (blob && blob.size) {
       try {
-        const a = await assessAgainstReference(src, blob);
+        const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
+        const a = await assessAgainstReference(src, blob, contrastSrcs);
         if (a.method === "reference") {
+          setMetrics(a.metrics ?? null);
+          if (!a.qualityOk) {
+            // Too noisy / clipped / quiet to trust — ask for a re-record, no score.
+            setHeard("");
+            setScore(null);
+            setQuality(a.qualityLabel ?? null);
+            setNotice({
+              title: "Let's try that again",
+              body: `${a.qualityLabel ?? "We couldn't hear that clearly"}. Move to a quieter spot, hold the device closer to your mouth, and record again.`,
+            });
+            return;
+          }
           setHeard("");
           setScore(a.score);
           setQuality(a.qualityLabel ?? null);
@@ -235,7 +255,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         </div>
       </div>
 
-      {speechError && (
+      {notice && (
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -246,9 +266,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           <span className="text-lg leading-none" aria-hidden="true">⚠️</span>
           <div className="min-w-0 flex-1 text-sm">
             <div className="font-semibold" style={{ color: "#E6B93D" }}>
-              Pronunciation scoring unavailable
+              {notice.title}
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-sand/70">{speechError}</p>
+            <p className="mt-1 text-xs leading-relaxed text-sand/70">{notice.body}</p>
             <p className="mt-1.5 text-xs leading-relaxed text-sand/50">
               You can still practise: play the model audio, record yourself, and compare the two
               waveforms above by ear.
@@ -295,6 +315,17 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           </div>
           {score < PASS_SCORE && <Button size="sm" variant="outline" className="ml-auto" onClick={record}>Retry</Button>}
         </motion.div>
+      )}
+
+      {assessDebugEnabled() && metrics && (
+        <pre
+          dir="ltr"
+          className="mt-2 overflow-x-auto rounded-lg border border-gold/25 bg-black/40 p-2 text-[10px] leading-snug text-gold/80"
+        >
+{`dMean=${metrics.dMean.toFixed(3)}  dWorst=${metrics.dWorst.toFixed(3)}  dEff=${metrics.dEff.toFixed(3)}
+contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  score=${metrics.score}
+snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
+        </pre>
       )}
     </div>
   );

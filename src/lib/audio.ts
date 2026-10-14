@@ -14,7 +14,7 @@ import {
   recordingQuality,
   type RecordingQuality,
 } from "@/lib/mfcc";
-import { dtwDistance } from "@/lib/dtw";
+import { dtwProfile, type DtwProfile } from "@/lib/dtw";
 
 const missing = new Set<string>();
 
@@ -207,33 +207,73 @@ export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
 }
 
 export type AssessmentMethod = "reference" | "estimate";
+
+/** Raw numbers behind a score — surfaced by the `?assess=debug` HUD. */
+export type AssessmentMetrics = {
+  dMean: number;
+  dWorst: number;
+  dEff: number;
+  contrast: number | null;
+  margin: number | null;
+  score: number;
+  snrDb: number;
+  clipping: number;
+};
+
 export type Assessment = {
   score: number;
   method: AssessmentMethod;
+  qualityOk: boolean;
   distance?: number;
   durationRatio?: number;
   snrDb?: number;
   qualityLabel?: string;
+  metrics?: AssessmentMetrics;
 };
 
 // --- scoring calibration ---------------------------------------------------
 // Frames are mean/variance normalized and compared with a scale-free cosine
 // distance (0 = identical spectral direction), so a genuine same-voice match
 // lands near 0 while phonetically different clips sit well above it. The
-// logistic below maps that distance onto 0-100.
+// logistic below maps the effective distance onto 0-100.
 //
 // NOTE: these constants are placeholders pending real measurements captured
 // with ?assess=debug (they will be tightened once the same-voice distance for
 // the reference set is known).
-const SCORE_MID = 0.60; // distance that maps to ~50
-const SCORE_SLOPE = 0.14; // smaller = sharper contrast
+const SCORE_MID = 0.42; // effective distance that maps to ~50
+const SCORE_SLOPE = 0.06; // smaller = sharper contrast
 
-function scoreFromDistance(dist: number, durationRatio: number, qualityFactor: number): number {
-  if (!isFinite(dist)) return 0;
-  const raw = 100 / (1 + Math.exp((dist - SCORE_MID) / SCORE_SLOPE));
-  // Only penalise a genuinely mismatched length; a little slack is normal.
-  const dur = durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio;
-  return Math.max(0, Math.min(100, Math.round(raw * dur * qualityFactor)));
+// A single mispronounced phone must be able to fail the whole attempt, so the
+// effective distance leans on the *worst* part of the alignment, not just the
+// average. WORST_WEIGHT is the share of the worst-frame distance in dEff.
+const WORST_WEIGHT = 0.65;
+const WORST_PERCENTILE = 0.9;
+
+// Discriminative cap: when a contrast reference is actually closer than the
+// target (margin < MARGIN_SAFE), the attempt likely sounds like a different
+// item, so the score is capped low and falls off with the margin.
+const MARGIN_SAFE = 0.0;
+const MARGIN_RAMP = 150;
+
+/** Percentile of a distance profile (0..1). */
+function percentile(values: Float32Array, p: number): number {
+  if (!values.length) return 0;
+  const arr = Array.from(values).sort((a, b) => a - b);
+  const idx = Math.min(arr.length - 1, Math.max(0, Math.round((arr.length - 1) * p)));
+  return arr[idx];
+}
+
+/** Mean / worst-frame / effective distance from an alignment profile. */
+function effectiveDistance(profile: DtwProfile): { dMean: number; dWorst: number; dEff: number } {
+  const dMean = profile.distance;
+  if (!isFinite(dMean)) return { dMean: Infinity, dWorst: Infinity, dEff: Infinity };
+  const worst = Math.max(dMean, percentile(profile.frameDistances, WORST_PERCENTILE));
+  return { dMean, dWorst: worst, dEff: (1 - WORST_WEIGHT) * dMean + WORST_WEIGHT * worst };
+}
+
+function marginCap(margin: number | null): number {
+  if (margin === null || margin >= MARGIN_SAFE) return 100;
+  return Math.max(8, 55 + margin * MARGIN_RAMP);
 }
 
 /** How much to trust the score given capture cleanliness (1.0 = pristine). */
@@ -283,8 +323,8 @@ function estimateFromAudio(samples: Float32Array): number {
   return Math.round(35 + level * 55);
 }
 
-/** Calibration readout is available in any build via `?assess=debug`. */
-function assessDebugEnabled(): boolean {
+/** Calibration HUD is available in any build via `?assess=debug`. */
+export function assessDebugEnabled(): boolean {
   try {
     return typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).get("assess") === "debug";
@@ -293,41 +333,78 @@ function assessDebugEnabled(): boolean {
   }
 }
 
+/** Whether a capture is clean enough to score, or should prompt a re-record. */
+function qualityAcceptable(q: RecordingQuality): boolean {
+  return q.clipping <= 0.06 && q.snrDb >= 6 && q.level >= 0.02 && q.voicedMs >= 150;
+}
+
 /**
  * Compare a learner's recording to the native-speaker model and return a
  * 0-100 similarity score. Runs entirely in the browser (MFCC + DTW); if the
  * clips are too short to compare, falls back to an energy estimate.
+ *
+ * `contrastSrcs` are optional reference files from the same folder that the
+ * learner might plausibly have said instead (e.g. the same letter with another
+ * vowel). The target must be the closest match, which is what lets a single
+ * wrong letter fail rather than being averaged away.
  */
-export async function assessAgainstReference(refSrc: string, userBlob: Blob): Promise<Assessment> {
+export async function assessAgainstReference(
+  refSrc: string,
+  userBlob: Blob,
+  contrastSrcs: string[] = [],
+): Promise<Assessment> {
   const [ref, user] = await Promise.all([loadReference(refSrc), decodeBlob(userBlob)]);
   const rawUser = toMono16k(user);
   const refPcm = trimSilence(toMono16k(ref));
   const userPcm = trimSilence(rawUser);
   const quality = recordingQuality(rawUser);
+  const qualityOk = qualityAcceptable(quality);
+  const qualityLabel = recordingQualityLabel(quality);
 
   if (refPcm.length < 1600 || userPcm.length < 1600) {
-    return {
-      score: estimateFromAudio(userPcm),
-      method: "estimate",
-      snrDb: quality.snrDb,
-      qualityLabel: recordingQualityLabel(quality),
-    };
+    const score = estimateFromAudio(userPcm);
+    return { score, method: "estimate", qualityOk, snrDb: quality.snrDb, qualityLabel };
   }
 
   const refFrames = cepstralVarianceNormalize(mfccFrames(refPcm));
   const userFrames = cepstralVarianceNormalize(mfccFrames(userPcm));
-  const dist = dtwDistance(refFrames, userFrames, 0.25, "cosine");
+  const { dMean, dWorst, dEff } = effectiveDistance(dtwProfile(refFrames, userFrames, 0.25, "cosine"));
+
+  // Discriminative margin: how much closer the target is than the best contrast.
+  let contrast: number | null = null;
+  for (const cs of contrastSrcs) {
+    try {
+      const cRef = await loadReference(cs);
+      const cPcm = trimSilence(toMono16k(cRef));
+      if (cPcm.length < 1600) continue;
+      const cFrames = cepstralVarianceNormalize(mfccFrames(cPcm));
+      const ce = effectiveDistance(dtwProfile(cFrames, userFrames, 0.25, "cosine")).dEff;
+      if (contrast === null || ce < contrast) contrast = ce;
+    } catch { /* missing/unreadable contrast file — skip it */ }
+  }
+  const margin = contrast === null ? null : contrast - dEff;
+
   const durationRatio =
     Math.min(refPcm.length, userPcm.length) / Math.max(refPcm.length, userPcm.length);
   const qf = qualityFactor(quality);
-  const score = scoreFromDistance(dist, durationRatio, qf);
+  const absScore = 100 / (1 + Math.exp((dEff - SCORE_MID) / SCORE_SLOPE));
+  // Only penalise a genuinely mismatched length; a little slack is normal.
+  const dur = durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio;
+  const score = Math.max(0, Math.min(100, Math.round(Math.min(absScore, marginCap(margin)) * dur * qf)));
 
-  // Calibration aid: run with `?assess=debug` (any build) or in dev to read the
-  // raw numbers and tune SCORE_MID / SCORE_SLOPE. length/16 = ms at 16 kHz.
+  const metrics: AssessmentMetrics = {
+    dMean, dWorst, dEff, contrast, margin, score,
+    snrDb: quality.snrDb, clipping: quality.clipping,
+  };
+
+  // Calibration aid: run with `?assess=debug` (any build) to read the raw
+  // numbers and tune SCORE_MID / SCORE_SLOPE / WORST_WEIGHT.
   if (import.meta.env.DEV || assessDebugEnabled()) {
     console.debug(
       `[assess] ref=${Math.round(refPcm.length / 16)}ms user=${Math.round(userPcm.length / 16)}ms ` +
-      `dist=${dist.toFixed(3)} ratio=${durationRatio.toFixed(2)} snr=${quality.snrDb.toFixed(1)}dB ` +
+      `dMean=${dMean.toFixed(3)} dWorst=${dWorst.toFixed(3)} dEff=${dEff.toFixed(3)} ` +
+      `contrast=${contrast === null ? "—" : contrast.toFixed(3)} margin=${margin === null ? "—" : margin.toFixed(3)} ` +
+      `ratio=${durationRatio.toFixed(2)} snr=${quality.snrDb.toFixed(1)}dB ` +
       `clip=${(quality.clipping * 100).toFixed(1)}% qf=${qf.toFixed(2)} score=${score}`,
     );
   }
@@ -335,10 +412,12 @@ export async function assessAgainstReference(refSrc: string, userBlob: Blob): Pr
   return {
     score,
     method: "reference",
-    distance: dist,
+    qualityOk,
+    distance: dEff,
     durationRatio,
     snrDb: quality.snrDb,
-    qualityLabel: recordingQualityLabel(quality),
+    qualityLabel,
+    metrics,
   };
 }
 
