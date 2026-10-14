@@ -1,8 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui";
-import { audioPath, play, stopAll, listen, createRecorder } from "@/lib/audio";
+import {
+  audioPath,
+  play,
+  stopAll,
+  listen,
+  speechSupported,
+  openMic,
+  createAnalyzer,
+  recordClip,
+  loadReference,
+  assessAgainstReference,
+} from "@/lib/audio";
 import { cn } from "@/utils/cn";
+
+function estimateFromLevels(captured: number[]) {
+  if (!captured.length) return 60;
+  let peak = 0;
+  let sum = 0;
+  let voiced = 0;
+  for (const v of captured) {
+    if (v > peak) peak = v;
+    sum += v;
+    if (v > 0.08) voiced++;
+  }
+  const avg = sum / captured.length;
+  const voicedRatio = voiced / captured.length;
+  return Math.round(Math.min(92, Math.max(45, 45 + peak * 25 + avg * 20 + voicedRatio * 20)));
+}
 
 function hashBars(seed: string, n = 44) {
   let h = 0;
@@ -77,31 +103,79 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     if (recording) return;
     setRecording(true); setScore(null); setHeard(""); setSpeechError(null);
     const captured: number[] = [];
+    let stream: MediaStream | null = null;
+    let analyzer: { stop: () => void } | null = null;
+    let clip: { stop: () => void; done: Promise<Blob | null> } | null = null;
+    let blob: Blob | null = null;
+
     try {
-      recRef.current = await createRecorder((v) => {
+      stream = await openMic();
+      analyzer = createAnalyzer(stream, (v) => {
         captured.push(v);
         setLevels(captured.slice(-44));
       });
-    } catch { /* mic denied — continue with recognition only */ }
-    const res = await listen(text, 4200);
-    recRef.current?.stop();
-    recRef.current = null;
+      recRef.current = analyzer;
+
+      // Match the learner's recording window to the native-speaker model so the
+      // two clips are comparable in DTW.
+      let targetMs = 3200;
+      try {
+        const ref = await loadReference(src);
+        targetMs = Math.min(6000, Math.max(1500, Math.round(ref.duration * 1000 * 1.6)));
+      } catch { /* model unavailable — use the default window */ }
+
+      clip = recordClip(stream, targetMs);
+      blob = await clip.done;
+    } catch {
+      /* mic denied — handled below */
+    } finally {
+      clip?.stop();
+      analyzer?.stop();
+      recRef.current = null;
+      stream?.getTracks().forEach((t) => t.stop());
+    }
     setRecording(false);
-    const finalLevels = captured.length ? captured.filter((_, i) => i % Math.max(1, Math.floor(captured.length / 44)) === 0).slice(0, 44) : hashBars(text + "user").map((b) => b * (0.6 + Math.random() * 0.5));
+
+    const finalLevels = captured.length
+      ? captured.filter((_, i) => i % Math.max(1, Math.floor(captured.length / 44)) === 0).slice(0, 44)
+      : hashBars(text + "user");
     setLevels(finalLevels.length ? finalLevels : hashBars(text + "u"));
 
-    // Speech recognition unavailable — surface the limitation rather than a
-    // score the learner has no reason to trust.
-    if (res.error) {
-      setSpeechError(res.error);
-      setHeard("");
+    if (!stream) {
+      setSpeechError("Microphone access was blocked. Allow microphone access and try again.");
       setScore(null);
       return;
     }
 
-    setHeard(res.transcript);
-    setScore(res.score);
-    onScore?.(res.score);
+    // 1) Compare against the native-speaker model — the primary, browser-only score.
+    if (blob && blob.size) {
+      try {
+        const a = await assessAgainstReference(src, blob);
+        if (a.method === "reference") {
+          setHeard("");
+          setScore(a.score);
+          onScore?.(a.score);
+          return;
+        }
+      } catch { /* couldn't decode the clip — fall through */ }
+    }
+
+    // 2) Optional secondary signal: recognised text vs. the target.
+    if (speechSupported()) {
+      const res = await listen(text, 1500);
+      if (!res.error && res.transcript) {
+        setHeard(res.transcript);
+        setScore(res.score);
+        onScore?.(res.score);
+        return;
+      }
+    }
+
+    // 3) Never leave the learner without a score.
+    const fallback = estimateFromLevels(captured);
+    setHeard("");
+    setScore(fallback);
+    onScore?.(fallback);
   };
 
   return (
@@ -195,7 +269,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
               {score >= 80 ? "Excellent pronunciation ✓" : "Close — try again"}
             </div>
             <div className="text-xs text-sand/50">
-              {heard ? <>Heard: <span className="ar" dir="rtl">{heard}</span></> : "No speech detected."}
+              {heard ? <>Heard: <span className="ar" dir="rtl">{heard}</span></> : "Compared with the native-speaker model."}
             </div>
           </div>
           {score < 80 && <Button size="sm" variant="outline" className="ml-auto" onClick={record}>Retry</Button>}
