@@ -5,7 +5,15 @@
  * to the browser's Arabic speech synthesis voice so the app is always usable.
  */
 
-import { toMono16k, trimSilence, mfccFrames, cepstralMeanNormalize, rmsLevel } from "@/lib/mfcc";
+import {
+  toMono16k,
+  trimSilence,
+  mfccFrames,
+  cepstralVarianceNormalize,
+  rmsLevel,
+  recordingQuality,
+  type RecordingQuality,
+} from "@/lib/mfcc";
 import { dtwDistance } from "@/lib/dtw";
 
 const missing = new Set<string>();
@@ -199,19 +207,47 @@ export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
 }
 
 export type AssessmentMethod = "reference" | "estimate";
-export type Assessment = { score: number; method: AssessmentMethod };
+export type Assessment = {
+  score: number;
+  method: AssessmentMethod;
+  distance?: number;
+  durationRatio?: number;
+  snrDb?: number;
+  qualityLabel?: string;
+};
 
-// A genuine same-voice match still carries mic/environment/rate differences, so
-// its DTW distance sits well above zero. DTW_SCALE is set wide enough that a
-// fluent, felicitous attempt lands in the "good" band or above instead of being
-// capped near the pass mark, while clearly different utterances fall away.
-const DTW_SCALE = 22;
+// --- scoring calibration ---------------------------------------------------
+// Frames are mean/variance normalized and compared with a scale-free cosine
+// distance (0 = identical spectral direction), so a genuine same-voice match
+// lands near 0 while phonetically different clips sit well above it. The
+// logistic below maps that distance onto 0-100.
+//
+// NOTE: these constants are placeholders pending real measurements captured
+// with ?assess=debug (they will be tightened once the same-voice distance for
+// the reference set is known).
+const SCORE_MID = 0.60; // distance that maps to ~50
+const SCORE_SLOPE = 0.14; // smaller = sharper contrast
 
-function scoreFromDistance(dist: number, durationRatio: number): number {
+function scoreFromDistance(dist: number, durationRatio: number, qualityFactor: number): number {
   if (!isFinite(dist)) return 0;
-  const base = 100 * Math.exp(-dist / DTW_SCALE);
-  const dur = 0.85 + 0.15 * durationRatio;
-  return Math.max(0, Math.min(100, Math.round(base * dur)));
+  const raw = 100 / (1 + Math.exp((dist - SCORE_MID) / SCORE_SLOPE));
+  // Only penalise a genuinely mismatched length; a little slack is normal.
+  const dur = durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio;
+  return Math.max(0, Math.min(100, Math.round(raw * dur * qualityFactor)));
+}
+
+/** How much to trust the score given capture cleanliness (1.0 = pristine). */
+function qualityFactor(q: RecordingQuality): number {
+  const snr = Math.max(0, Math.min(1, (q.snrDb - 8) / 12));
+  const clip = Math.max(0, Math.min(1, 1 - q.clipping * 20));
+  return 0.9 + 0.1 * snr * clip;
+}
+
+function recordingQualityLabel(q: RecordingQuality): string {
+  if (q.clipping > 0.02) return "Too loud — clipping; lower the input level";
+  if (q.snrDb < 12) return "Noisy recording — a quieter spot helps";
+  if (q.level < 0.03) return "Very quiet — move closer to the mic";
+  return "Clear recording";
 }
 
 /**
@@ -247,6 +283,16 @@ function estimateFromAudio(samples: Float32Array): number {
   return Math.round(35 + level * 55);
 }
 
+/** Calibration readout is available in any build via `?assess=debug`. */
+function assessDebugEnabled(): boolean {
+  try {
+    return typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("assess") === "debug";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Compare a learner's recording to the native-speaker model and return a
  * 0-100 similarity score. Runs entirely in the browser (MFCC + DTW); if the
@@ -254,31 +300,61 @@ function estimateFromAudio(samples: Float32Array): number {
  */
 export async function assessAgainstReference(refSrc: string, userBlob: Blob): Promise<Assessment> {
   const [ref, user] = await Promise.all([loadReference(refSrc), decodeBlob(userBlob)]);
+  const rawUser = toMono16k(user);
   const refPcm = trimSilence(toMono16k(ref));
-  const userPcm = trimSilence(toMono16k(user));
+  const userPcm = trimSilence(rawUser);
+  const quality = recordingQuality(rawUser);
+
   if (refPcm.length < 1600 || userPcm.length < 1600) {
-    return { score: estimateFromAudio(userPcm), method: "estimate" };
+    return {
+      score: estimateFromAudio(userPcm),
+      method: "estimate",
+      snrDb: quality.snrDb,
+      qualityLabel: recordingQualityLabel(quality),
+    };
   }
-  const refFrames = cepstralMeanNormalize(mfccFrames(refPcm));
-  const userFrames = cepstralMeanNormalize(mfccFrames(userPcm));
-  const dist = dtwDistance(refFrames, userFrames);
-  const durationRatio = Math.min(refPcm.length, userPcm.length) / Math.max(refPcm.length, userPcm.length);
-  const score = scoreFromDistance(dist, durationRatio);
-  // Dev-only calibration aid: report the raw numbers so DTW_SCALE can be tuned
-  // against real recordings. `refPcm`/`userPcm` are 16 kHz, so length/16 = ms.
-  if (import.meta.env.DEV) {
+
+  const refFrames = cepstralVarianceNormalize(mfccFrames(refPcm));
+  const userFrames = cepstralVarianceNormalize(mfccFrames(userPcm));
+  const dist = dtwDistance(refFrames, userFrames, 0.25, "cosine");
+  const durationRatio =
+    Math.min(refPcm.length, userPcm.length) / Math.max(refPcm.length, userPcm.length);
+  const qf = qualityFactor(quality);
+  const score = scoreFromDistance(dist, durationRatio, qf);
+
+  // Calibration aid: run with `?assess=debug` (any build) or in dev to read the
+  // raw numbers and tune SCORE_MID / SCORE_SLOPE. length/16 = ms at 16 kHz.
+  if (import.meta.env.DEV || assessDebugEnabled()) {
     console.debug(
       `[assess] ref=${Math.round(refPcm.length / 16)}ms user=${Math.round(userPcm.length / 16)}ms ` +
-      `dist=${dist.toFixed(3)} ratio=${durationRatio.toFixed(2)} score=${score}`,
+      `dist=${dist.toFixed(3)} ratio=${durationRatio.toFixed(2)} snr=${quality.snrDb.toFixed(1)}dB ` +
+      `clip=${(quality.clipping * 100).toFixed(1)}% qf=${qf.toFixed(2)} score=${score}`,
     );
   }
-  return { score, method: "reference" };
+
+  return {
+    score,
+    method: "reference",
+    distance: dist,
+    durationRatio,
+    snrDb: quality.snrDb,
+    qualityLabel: recordingQualityLabel(quality),
+  };
 }
 
 /* ---------- microphone capture ---------- */
 
 export async function openMic(): Promise<MediaStream> {
-  return navigator.mediaDevices.getUserMedia({ audio: true });
+  // Disable the browser's DSP (AGC / noise suppression / echo cancellation) so
+  // the captured spectrum reflects the learner's actual voice rather than being
+  // reshaped by processing that fights the MFCC comparison.
+  return navigator.mediaDevices.getUserMedia({
+    audio: {
+      autoGainControl: false,
+      noiseSuppression: false,
+      echoCancellation: false,
+    },
+  });
 }
 
 /** Level meter for the waveform UI. Does not open or close the mic stream. */
@@ -319,7 +395,11 @@ export function recorderMime(): string | undefined {
 export function recordClip(stream: MediaStream, ms: number): { stop: () => void; done: Promise<Blob | null> } {
   if (typeof MediaRecorder === "undefined") return { stop: () => { /* noop */ }, done: Promise.resolve(null) };
   const mime = recorderMime();
-  const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+  // A higher bitrate keeps more spectral detail through Opus, which matters for
+  // the MFCC comparison (low bitrates smear high-frequency content).
+  const opts: MediaRecorderOptions = { audioBitsPerSecond: 128000 };
+  if (mime) opts.mimeType = mime;
+  const recorder = new MediaRecorder(stream, opts);
   const chunks: BlobPart[] = [];
   recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   const done = new Promise<Blob | null>((resolve) => {

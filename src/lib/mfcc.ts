@@ -34,16 +34,61 @@ export function toMono16k(buffer: AudioBuffer, target = 16000): Float32Array {
   return out;
 }
 
-/** Drop leading/trailing near-silence, keeping a small pad. */
-export function trimSilence(samples: Float32Array, rate = 16000, threshold = 0.012): Float32Array {
-  let start = 0;
-  let end = samples.length - 1;
-  while (start < samples.length && Math.abs(samples[start]) < threshold) start++;
-  while (end > start && Math.abs(samples[end]) < threshold) end--;
-  if (end <= start) return new Float32Array(0);
-  const pad = Math.floor(rate * 0.02);
-  start = Math.max(0, start - pad);
-  end = Math.min(samples.length - 1, end + pad);
+/** Short-time RMS envelope: energy per frame, used for voice-activity detection. */
+export function rmsEnvelope(samples: Float32Array, rate = 16000, frameMs = 20, hopMs = 10): Float32Array {
+  const frame = Math.max(1, Math.round((rate * frameMs) / 1000));
+  const hop = Math.max(1, Math.round((rate * hopMs) / 1000));
+  if (samples.length < frame) return new Float32Array(0);
+  const n = Math.floor((samples.length - frame) / hop) + 1;
+  const env = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const start = i * hop;
+    let sum = 0;
+    for (let j = 0; j < frame; j++) {
+      const v = samples[start + j];
+      sum += v * v;
+    }
+    env[i] = Math.sqrt(sum / frame);
+  }
+  return env;
+}
+
+function percentile(sorted: Float32Array, p: number): number {
+  if (!sorted.length) return 0;
+  const i = Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))));
+  return sorted[i];
+}
+
+/**
+ * Drop leading/trailing non-speech, keeping a small pad. Uses a *relative*
+ * threshold derived from the recording's own noise floor and peak loudness, so
+ * quiet room tone is trimmed away instead of riding along and polluting the
+ * comparison (the fixed-threshold version left ambient noise in short clips).
+ */
+export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.006): Float32Array {
+  if (!samples.length) return samples;
+  const env = rmsEnvelope(samples, rate);
+  if (!env.length) return samples;
+  const sorted = Float32Array.from(env).sort();
+  const floor = percentile(sorted, 0.15);
+  const peak = percentile(sorted, 0.95);
+  // Cap below the peak so a signal with little dynamic range (all voiced, no
+  // clear noise floor) isn't trimmed away entirely.
+  const threshold = Math.min(Math.max(floor * 2.5, peak * 0.06, absFloor), peak * 0.5);
+  const hop = Math.round((rate * 10) / 1000);
+  const frame = Math.round((rate * 20) / 1000);
+  let first = -1;
+  let last = -1;
+  for (let i = 0; i < env.length; i++) {
+    if (env[i] >= threshold) {
+      if (first < 0) first = i;
+      last = i;
+    }
+  }
+  if (first < 0) return new Float32Array(0);
+  const pad = Math.round(rate * 0.03);
+  const start = Math.max(0, first * hop - pad);
+  const end = Math.min(samples.length - 1, last * hop + frame + pad);
   return samples.slice(start, end + 1);
 }
 
@@ -189,10 +234,78 @@ export function cepstralMeanNormalize(frames: Float32Array[]): Float32Array[] {
   });
 }
 
+/**
+ * Cepstral mean *and* variance normalization: subtract each coefficient's mean
+ * across the utterance, then divide by its standard deviation. Mean removal
+ * cancels static channel gain; variance normalization cancels level-shaping
+ * (mic EQ, room colour, codec), so what remains is closer to phonetic content
+ * and the same voice recorded twice lands far nearer to itself.
+ */
+export function cepstralVarianceNormalize(frames: Float32Array[]): Float32Array[] {
+  if (!frames.length) return frames;
+  const dim = frames[0].length;
+  const n = frames.length;
+  const mean = new Float32Array(dim);
+  const sq = new Float32Array(dim);
+  for (const f of frames) {
+    for (let d = 0; d < dim; d++) {
+      mean[d] += f[d];
+      sq[d] += f[d] * f[d];
+    }
+  }
+  const std = new Float32Array(dim);
+  for (let d = 0; d < dim; d++) {
+    mean[d] /= n;
+    const variance = sq[d] / n - mean[d] * mean[d];
+    std[d] = Math.sqrt(Math.max(variance, 1e-8));
+  }
+  return frames.map((f) => {
+    const out = new Float32Array(dim);
+    for (let d = 0; d < dim; d++) out[d] = (f[d] - mean[d]) / std[d];
+    return out;
+  });
+}
+
 /** Root-mean-square level of a PCM buffer in [0, 1]-ish range. */
 export function rmsLevel(samples: Float32Array): number {
   if (!samples.length) return 0;
   let sum = 0;
   for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
   return Math.sqrt(sum / samples.length);
+}
+
+export type RecordingQuality = {
+  /** Signal-to-noise ratio in dB (voiced level vs. the recording's noise floor). */
+  snrDb: number;
+  /** Fraction of samples at/near full scale (clipping). */
+  clipping: number;
+  /** Peak level in [0, 1]. */
+  level: number;
+  /** Roughly how many ms of the clip carry speech. */
+  voicedMs: number;
+};
+
+/**
+ * Estimate how clean the capture is. These numbers let the scorer distinguish
+ * "you said it wrong" from "the recording was poor", and let the UI tell the
+ * learner when to re-record in a quieter spot.
+ */
+export function recordingQuality(samples: Float32Array, rate = 16000): RecordingQuality {
+  const env = rmsEnvelope(samples, rate);
+  if (!env.length) return { snrDb: 0, clipping: 0, level: 0, voicedMs: 0 };
+  const sorted = Float32Array.from(env).sort();
+  const floor = Math.max(percentile(sorted, 0.15), 1e-6);
+  const peak = Math.max(percentile(sorted, 0.95), floor);
+  const snrDb = 20 * Math.log10(peak / floor);
+
+  let clipped = 0;
+  for (let i = 0; i < samples.length; i++) if (Math.abs(samples[i]) >= 0.985) clipped++;
+  const clipping = samples.length ? clipped / samples.length : 0;
+
+  const gate = Math.min(Math.max(floor * 2.5, peak * 0.06), peak * 0.5);
+  let voicedFrames = 0;
+  for (let i = 0; i < env.length; i++) if (env[i] >= gate) voicedFrames++;
+  const voicedMs = (voicedFrames / env.length) * (samples.length / rate) * 1000;
+
+  return { snrDb, clipping, level: peak, voicedMs };
 }

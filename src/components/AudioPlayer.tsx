@@ -90,6 +90,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const [score, setScore] = useState<number | null>(null);
   const [heard, setHeard] = useState<string>("");
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [quality, setQuality] = useState<string | null>(null);
   const [progressIdx, setProgressIdx] = useState(-1);
   const recRef = useRef<{ stop: () => void } | null>(null);
   const model = hashBars(fileKey + text);
@@ -97,7 +98,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const bandStyle = band ? BAND_STYLE[band] : null;
 
   useEffect(() => () => { stopAll(); recRef.current?.stop(); }, []);
-  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setSpeechError(null); }, [fileKey]);
+  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setSpeechError(null); setQuality(null); }, [fileKey]);
 
   const doPlay = async (r = rate) => {
     setPlaying(true);
@@ -115,7 +116,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 
   const record = async () => {
     if (recording) return;
-    setRecording(true); setScore(null); setHeard(""); setSpeechError(null);
+    setRecording(true); setScore(null); setHeard(""); setSpeechError(null); setQuality(null);
     const captured: number[] = [];
     let stream: MediaStream | null = null;
     let analyzer: { stop: () => void } | null = null;
@@ -168,6 +169,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         if (a.method === "reference") {
           setHeard("");
           setScore(a.score);
+          setQuality(a.qualityLabel ?? null);
           onScore?.(a.score);
           return;
         }
@@ -285,6 +287,11 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
             <div className="text-xs text-sand/50">
               {heard ? <>Heard: <span className="ar" dir="rtl">{heard}</span></> : "Compared with the native-speaker model."}
             </div>
+            {quality && (
+              <div className={cn("text-[11px]", quality === "Clear recording" ? "text-sand/40" : "text-gold/80")}>
+                🎚 {quality}
+              </div>
+            )}
           </div>
           {score < PASS_SCORE && <Button size="sm" variant="outline" className="ml-auto" onClick={record}>Retry</Button>}
         </motion.div>
