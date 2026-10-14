@@ -5,7 +5,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import Quiz, { shuffle, type Question } from "@/components/Quiz";
 import { UpgradeModal } from "@/components/Layout";
 import { DIALOGUES, EXPRESSIONS } from "@/data/dialogue";
-import { play, audioPath } from "@/lib/audio";
+import { play, audioPath, PASS_SCORE } from "@/lib/audio";
 import { useApp, DEV_UNLOCK_ALL } from "@/lib/store";
 import { cn } from "@/utils/cn";
 
@@ -142,7 +142,7 @@ export default function Conversation() {
       {phase === 2 && (
         <Card>
           <h3 className="font-bold">Line-by-line practice</h3>
-          <p className="text-xs text-sand/50">Record each line — 80% similarity advances you.</p>
+          <p className="text-xs text-sand/50">Record each line — a good match ({PASS_SCORE}% similarity) advances you.</p>
           {lineLocked ? (
             <div className="mt-4 text-center">
               <LockIcon className="mx-auto h-7 w-7 text-gold" />
@@ -157,7 +157,7 @@ export default function Conversation() {
               </div>
               <div className="mt-3">
                 <AudioPlayer folder="dialogue" fileKey={line.id} text={line.ar}
-                  onScore={(s) => { if (s >= 80) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); } }} />
+                  onScore={(s) => { if (s >= PASS_SCORE) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); } }} />
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <Button variant="ghost" onClick={() => setLineIdx((i) => Math.max(0, i - 1))} disabled={lineIdx === 0}>→ Previous line</Button>
@@ -208,8 +208,8 @@ export default function Conversation() {
                 <AudioPlayer folder="dialogue" fileKey={rpLine.id} text={rpLine.ar}
                   onScore={(s) => {
                     setRpLog((l) => [...l, { who: "you", text: rpLine.ar, score: s }]);
-                    if (s >= 60) { setRpIdx((i) => i + 1); award("dialogue", rpLine.id, 25); }
-                  }} />
+                     if (s >= PASS_SCORE) { setRpIdx((i) => i + 1); award("dialogue", rpLine.id, 25); }
+                   }} />
               </div>
             ) : (
               <Button className="mt-3" onClick={async () => {

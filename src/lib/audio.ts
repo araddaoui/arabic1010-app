@@ -201,16 +201,45 @@ export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
 export type AssessmentMethod = "reference" | "estimate";
 export type Assessment = { score: number; method: AssessmentMethod };
 
-// Calibrated against the native-speaker reference set: identical clips score 0,
-// distinct words/numbers/countries land at ~5-10, and near-homophones (e.g.
-// short-vowel letter forms) at ~2.5. exp(-dist/10) spreads those into 0-100.
-const DTW_SCALE = 10;
+// A genuine same-voice match still carries mic/environment/rate differences, so
+// its DTW distance sits well above zero. DTW_SCALE is set wide enough that a
+// fluent, felicitous attempt lands in the "good" band or above instead of being
+// capped near the pass mark, while clearly different utterances fall away.
+const DTW_SCALE = 22;
 
 function scoreFromDistance(dist: number, durationRatio: number): number {
   if (!isFinite(dist)) return 0;
   const base = 100 * Math.exp(-dist / DTW_SCALE);
-  const dur = 0.6 + 0.4 * durationRatio;
+  const dur = 0.85 + 0.15 * durationRatio;
   return Math.max(0, Math.min(100, Math.round(base * dur)));
+}
+
+/**
+ * Score at or above which a graded speaking item counts as passed. Kept as a
+ * single source of truth so the feedback bands and every gate stay in sync.
+ */
+export const PASS_SCORE = 70;
+
+export type ScoreBand = "excellent" | "very-good" | "good" | "close" | "retry";
+
+export function scoreBand(score: number): ScoreBand {
+  if (score >= 90) return "excellent";
+  if (score >= 80) return "very-good";
+  if (score >= PASS_SCORE) return "good";
+  if (score >= 50) return "close";
+  return "retry";
+}
+
+const BAND_MESSAGES: Record<ScoreBand, string> = {
+  excellent: "Excellent pronunciation ✓",
+  "very-good": "Very good ✓",
+  good: "Good ✓",
+  close: "Close — try again",
+  retry: "Try again",
+};
+
+export function bandMessage(score: number): string {
+  return BAND_MESSAGES[scoreBand(score)];
 }
 
 function estimateFromAudio(samples: Float32Array): number {
@@ -234,7 +263,16 @@ export async function assessAgainstReference(refSrc: string, userBlob: Blob): Pr
   const userFrames = cepstralMeanNormalize(mfccFrames(userPcm));
   const dist = dtwDistance(refFrames, userFrames);
   const durationRatio = Math.min(refPcm.length, userPcm.length) / Math.max(refPcm.length, userPcm.length);
-  return { score: scoreFromDistance(dist, durationRatio), method: "reference" };
+  const score = scoreFromDistance(dist, durationRatio);
+  // Dev-only calibration aid: report the raw numbers so DTW_SCALE can be tuned
+  // against real recordings. `refPcm`/`userPcm` are 16 kHz, so length/16 = ms.
+  if (import.meta.env.DEV) {
+    console.debug(
+      `[assess] ref=${Math.round(refPcm.length / 16)}ms user=${Math.round(userPcm.length / 16)}ms ` +
+      `dist=${dist.toFixed(3)} ratio=${durationRatio.toFixed(2)} score=${score}`,
+    );
+  }
+  return { score, method: "reference" };
 }
 
 /* ---------- microphone capture ---------- */

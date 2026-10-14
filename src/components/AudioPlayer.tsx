@@ -12,6 +12,10 @@ import {
   recordClip,
   loadReference,
   assessAgainstReference,
+  PASS_SCORE,
+  scoreBand,
+  bandMessage,
+  type ScoreBand,
 } from "@/lib/audio";
 import { cn } from "@/utils/cn";
 
@@ -59,6 +63,14 @@ export function Waveform({ bars, color, active = -1, height = 44 }: { bars: numb
   );
 }
 
+const BAND_STYLE: Record<ScoreBand, { ring: string; label: string }> = {
+  excellent: { ring: "#1D9E75", label: "text-ok" },
+  "very-good": { ring: "#1D9E75", label: "text-ok" },
+  good: { ring: "#1D9E75", label: "text-ok" },
+  close: { ring: "#C9A227", label: "text-gold" },
+  retry: { ring: "#B22222", label: "text-err" },
+};
+
 type Props = {
   folder: string;
   fileKey: string;
@@ -81,6 +93,8 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const [progressIdx, setProgressIdx] = useState(-1);
   const recRef = useRef<{ stop: () => void } | null>(null);
   const model = hashBars(fileKey + text);
+  const band = score === null ? null : scoreBand(score);
+  const bandStyle = band ? BAND_STYLE[band] : null;
 
   useEffect(() => () => { stopAll(); recRef.current?.stop(); }, []);
   useEffect(() => { setScore(null); setLevels([]); setHeard(""); setSpeechError(null); }, [fileKey]);
@@ -210,7 +224,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
             {recording ? "Recording…" : "Your recording"}
           </div>
           {levels.length ? (
-            <Waveform bars={levels} color={score !== null && score >= 80 ? "#1D9E75" : "#8f7fd8"} height={compact ? 30 : 44} />
+            <Waveform bars={levels} color={score !== null && score >= PASS_SCORE ? "#1D9E75" : "#8f7fd8"} height={compact ? 30 : 44} />
           ) : (
             <div className="flex items-center text-xs text-sand/30" style={{ height: compact ? 30 : 44 }}>
               Tap record and say the word aloud
@@ -246,7 +260,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
                 Without this, an unsupported browser would soft-lock the learner on
                 any speaking question. Self-assessment is explicitly labelled as such. */}
             {onScore && (
-              <Button size="sm" variant="ghost" onClick={() => onScore(80)}>
+              <Button size="sm" variant="ghost" onClick={() => onScore(PASS_SCORE)}>
                 I said it — continue
               </Button>
             )}
@@ -259,20 +273,20 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           <div className="relative h-11 w-11 shrink-0">
             <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
               <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="4" />
-              <circle cx="18" cy="18" r="15" fill="none" stroke={score >= 80 ? "#1D9E75" : "#C9A227"} strokeWidth="4"
+              <circle cx="18" cy="18" r="15" fill="none" stroke={bandStyle?.ring ?? "#C9A227"} strokeWidth="4"
                 strokeDasharray={`${(score / 100) * 94} 94`} strokeLinecap="round" />
             </svg>
             <span className="absolute inset-0 grid place-items-center text-[11px] font-bold">{score}</span>
           </div>
           <div className="text-sm">
-            <div className={score >= 80 ? "font-semibold text-ok" : "font-semibold text-gold"}>
-              {score >= 80 ? "Excellent pronunciation ✓" : "Close — try again"}
+            <div className={cn("font-semibold", bandStyle?.label ?? "text-gold")}>
+              {bandMessage(score)}
             </div>
             <div className="text-xs text-sand/50">
               {heard ? <>Heard: <span className="ar" dir="rtl">{heard}</span></> : "Compared with the native-speaker model."}
             </div>
           </div>
-          {score < 80 && <Button size="sm" variant="outline" className="ml-auto" onClick={record}>Retry</Button>}
+          {score < PASS_SCORE && <Button size="sm" variant="outline" className="ml-auto" onClick={record}>Retry</Button>}
         </motion.div>
       )}
     </div>

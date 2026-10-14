@@ -13,13 +13,12 @@ import { cn } from "@/utils/cn";
 type Tab = "users" | "feedback" | "audio" | "content" | "analytics";
 
 const AUDIO_SETS = [
-  { folder: "cognates", speaker: "Ola", files: COGNATES.map((c) => `${c.id}.mp3`) },
+  { folder: "cognates", speaker: "Ali", files: COGNATES.map((c) => `${c.id}.mp3`) },
   { folder: "letters", speaker: "Ali", files: LETTERS.flatMap((l) => VOWELS.map((v) => `${l.id}_${v.key}.mp3`)) },
-  { folder: "letter-images", speaker: "Salaheddine", files: LETTERS.map((l) => `${l.id}_word.mp3`) },
-  { folder: "words", speaker: "Khouloud", files: VOCAB.map((w) => `${w.id}.mp3`) },
-  { folder: "dialogue", speaker: "Ali & Emna", files: DIALOGUES.flatMap((d) => d.lines.map((l) => `${l.id}.mp3`)) },
-  { folder: "numbers", speaker: "Amer", files: NUMBERS.map((n) => `${n.n}.mp3`) },
-  { folder: "countries", speaker: "Houda", files: COUNTRIES.map((c) => `${c.id}.mp3`) },
+  { folder: "words", speaker: "Ali", files: VOCAB.map((w) => `${w.id}.mp3`) },
+  { folder: "dialogue", speaker: "Ali & Ola", files: DIALOGUES.flatMap((d) => d.lines.map((l) => `${l.id}.mp3`)) },
+  { folder: "numbers", speaker: "Ali", files: NUMBERS.map((n) => `${n.n}.mp3`) },
+  { folder: "countries", speaker: "Ali", files: COUNTRIES.map((c) => `${c.id}.mp3`) },
 ];
 
 export default function Admin() {
@@ -30,7 +29,7 @@ export default function Admin() {
   const [q, setQ] = useState("");
   const [words, setWords] = useState<VocabWord[]>(VOCAB);
   const [lines, setLines] = useState(DIALOGUES[0].lines);
-  const [uploaded, setUploaded] = useState<Record<string, number>>({ cognates: 30, numbers: 21, countries: 22, words: 12, dialogue: 14, letters: 96, "letter-images": 0 });
+  const [uploaded, setUploaded] = useState<Record<string, number>>({ cognates: 30, numbers: 21, countries: 22, words: 12, dialogue: 14, letters: 96 });
   const [openFolder, setOpenFolder] = useState<string | null>("cognates");
 
   if (user?.role !== "admin") {
