@@ -83,6 +83,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
   const [recording, setRecording] = useState(false);
+  const [listening, setListening] = useState(false);
   const [levels, setLevels] = useState<number[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [heard, setHeard] = useState<string>("");
@@ -96,7 +97,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const bandStyle = band ? BAND_STYLE[band] : null;
 
   useEffect(() => () => { stopAll(); recRef.current?.stop(); }, []);
-  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); }, [fileKey]);
+  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setListening(false); }, [fileKey]);
 
   const doPlay = async (r = rate) => {
     setPlaying(true);
@@ -114,49 +115,69 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 
   const record = async () => {
     if (recording) return;
-    setRecording(true); setScore(null); setHeard(""); setNotice(null); setQuality(null); setMetrics(null);
+    setRecording(true); setLevels([]); setScore(null); setHeard(""); setNotice(null); setQuality(null); setMetrics(null);
     const captured: number[] = [];
     let stream: MediaStream | null = null;
     let analyzer: { stop: () => void } | null = null;
+    let animTimer: number | null = null;
     let blob: Blob | null = null;
     let recogResult: Awaited<ReturnType<typeof listen>> | null = null;
     let targetMs = 4000;
 
-    // One capture per mode, so SpeechRecognition and MediaRecorder never fight
+    // One capture per mode, so SpeechRecognition and a mic stream never fight
     // over the microphone. "auto" keeps the legacy hybrid behaviour for word
     // modules (letters are already acoustic-only) until each is migrated to
     // "recognition"; Cognates opts in explicitly.
     const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : "hybrid") : strategy;
 
     try {
-      stream = await openMic();
-      analyzer = createAnalyzer(stream, (v) => {
-        captured.push(v);
-        setLevels(captured.slice(-44));
-      });
-      recRef.current = analyzer;
-
-      // Size the capture window to the native-speaker model.
+      // Size the capture window to the native-speaker model (no mic involved).
       try {
         const ref = await loadReference(src);
         targetMs = Math.min(6000, Math.max(2500, Math.round(ref.duration * 1000 * 1.6)));
       } catch { /* model unavailable — use the default window */ }
 
-      if (mode === "acoustic") {
-        const clip = recordClip(stream, targetMs);
-        blob = await clip.done;
-      } else if (mode === "recognition") {
+      if (mode === "recognition") {
+        // Do NOT open our own mic: SpeechRecognition must be the sole consumer,
+        // otherwise Chrome starves it and correct speech yields "no speech".
+        // Animate the meter locally instead.
+        setListening(true);
+        const t0 = Date.now();
+        animTimer = window.setInterval(() => {
+          const t = (Date.now() - t0) / 1000;
+          setLevels(
+            Array.from({ length: 44 }, (_, i) => {
+              const a = Math.sin(t * 6 + i * 0.5) * 0.5 + 0.5;
+              const b = Math.sin(t * 11 + i * 0.9) * 0.5 + 0.5;
+              return 0.15 + 0.85 * (0.5 * a + 0.5 * b);
+            }),
+          );
+        }, 80);
         recogResult = await listen(text, targetMs);
       } else {
-        // Legacy hybrid: recognize and record the same utterance concurrently.
-        const recogPromise = speechSupported() ? listen(text, targetMs) : null;
-        const clip = recordClip(stream, targetMs);
-        blob = await clip.done;
-        recogResult = recogPromise ? await recogPromise : null;
+        stream = await openMic();
+        analyzer = createAnalyzer(stream, (v) => {
+          captured.push(v);
+          setLevels(captured.slice(-44));
+        });
+        recRef.current = analyzer;
+
+        if (mode === "acoustic") {
+          const clip = recordClip(stream, targetMs);
+          blob = await clip.done;
+        } else {
+          // Legacy hybrid: recognize and record the same utterance concurrently.
+          const recogPromise = speechSupported() ? listen(text, targetMs) : null;
+          const clip = recordClip(stream, targetMs);
+          blob = await clip.done;
+          recogResult = recogPromise ? await recogPromise : null;
+        }
       }
     } catch {
       /* mic denied — handled below */
     } finally {
+      if (animTimer !== null) clearInterval(animTimer);
+      setListening(false);
       analyzer?.stop();
       recRef.current = null;
       stream?.getTracks().forEach((t) => t.stop());
@@ -168,7 +189,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       : hashBars(text + "user");
     setLevels(finalLevels.length ? finalLevels : hashBars(text + "u"));
 
-    if (!stream) {
+    // A denied mic in recognition mode surfaces through SpeechRecognition's own
+    // error (shown below); only mic-opening modes can fail here with no stream.
+    if (mode !== "recognition" && !stream) {
       setNotice({
         title: "Microphone access blocked",
         body: "Allow microphone access and try again.",
@@ -249,7 +272,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         </Button>
         {allowRecord && (
           <Button size={compact ? "sm" : "md"} variant={recording ? "danger" : "ghost"} onClick={record} disabled={recording}>
-            {recording ? "● Recording…" : "🎙 Record"}
+            {listening ? "● Listening…" : recording ? "● Recording…" : "🎙 Record"}
           </Button>
         )}
         {label && <span className="ml-auto text-xs text-sand/45">{label}</span>}
@@ -262,7 +285,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         </div>
         <div>
           <div className="mb-1 text-[10px] uppercase tracking-widest text-sand/40">
-            {recording ? "Recording…" : "Your recording"}
+            {listening ? "Listening…" : recording ? "Recording…" : "Your recording"}
           </div>
           {levels.length ? (
             <Waveform bars={levels} color={score !== null && score >= PASS_SCORE ? "#1D9E75" : "#8f7fd8"} height={compact ? 30 : 44} />
