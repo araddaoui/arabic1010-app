@@ -170,6 +170,14 @@ export function speechSupported() {
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 }
 
+/**
+ * The single in-flight recognition session, if any. Web Speech is effectively a
+ * shared browser resource: leaving a previous session alive (an earlier attempt,
+ * or another player mounted on the same page) lets a stale result cross into the
+ * next attempt — two different words can even come back with the same transcript.
+ */
+let activeRecognition: { abort: () => void } | null = null;
+
 export function listen(target: string, ms = 4000): Promise<RecogResult> {
   return new Promise((resolve) => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -178,7 +186,10 @@ export function listen(target: string, ms = 4000): Promise<RecogResult> {
       resolve({ transcript: "", score: 0, error: SPEECH_UNSUPPORTED_MESSAGE });
       return;
     }
+    // Abort any earlier session so only one is ever listening.
+    if (activeRecognition) { try { activeRecognition.abort(); } catch { /* noop */ } }
     const r = new SR();
+    activeRecognition = r;
     r.lang = "ar-SA";
     r.interimResults = false;
     r.maxAlternatives = 3;
@@ -188,6 +199,7 @@ export function listen(target: string, ms = 4000): Promise<RecogResult> {
     const finish = (t: string, error?: string, alternatives?: { transcript: string; score: number }[]) => {
       if (done) return;
       done = true;
+      if (activeRecognition === r) activeRecognition = null;
       try { r.stop(); } catch { /* noop */ }
       if (error) { resolve({ transcript: "", score: 0, error }); return; }
       resolve({ transcript: t, score: t ? transcribeScore(target, t) : 0, alternatives });
