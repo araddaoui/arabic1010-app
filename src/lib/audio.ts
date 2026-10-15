@@ -573,6 +573,12 @@ const LETTER_CONSONANT_MARGIN = 0.01;
 // a wrong vowel/consonant lands in the "close — try again" band.
 const LETTER_PASS_FLOOR = 82;
 const LETTER_FAIL_CAP = 62;
+/** Below this trimmed length a syllable is too short to model at all. */
+const LETTER_MIN_SAMPLES = 800;
+
+function letterDebug(msg: string) {
+  if (import.meta.env.DEV || assessDebugEnabled()) console.debug(`[letter] ${msg}`);
+}
 
 function parseLetterKey(key: string): { glyph: string; vowel: LetterVowel } | null {
   const i = key.lastIndexOf("_");
@@ -597,7 +603,7 @@ type LetterFeat = {
 };
 
 function letterFeature(pcm: Float32Array, glyph: string, vowel: LetterVowel): LetterFeat | null {
-  if (pcm.length < 1600) return null;
+  if (pcm.length < LETTER_MIN_SAMPLES) return null;
   const raw = mfccFrames(pcm);
   if (!raw.length) return null;
   const frames = cepstralVarianceNormalize(raw);
@@ -640,16 +646,30 @@ export async function assessLetter(
   const parsed = parseLetterKey(targetKey);
   const [ref, user] = await Promise.all([loadReference(refSrc), decodeBlob(userBlob)]);
   const rawUser = toMono16k(user);
+  const userPcm = trimSilence(rawUser);
+  // Quality is only reported for the UI hint; it no longer gates scoring. The
+  // coarse mic check (snr/level/voicedMs over the whole capture window) rejected
+  // correct syllables because a short utterance in a long window looks "quiet".
+  // Whether we can score is decided solely by whether features were extracted.
   const quality = recordingQuality(rawUser);
-  const qualityOk = qualityAcceptable(quality);
   const qualityLabel = recordingQualityLabel(quality);
 
   if (!parsed) {
+    letterDebug(`unscorable reason=badKey key="${targetKey}"`);
     return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
   }
-  const target = letterFeature(trimSilence(toMono16k(ref)), parsed.glyph, parsed.vowel);
-  const userFeat = letterFeature(trimSilence(rawUser), parsed.glyph, parsed.vowel);
-  if (!target || !userFeat) {
+  const refPcm = trimSilence(toMono16k(ref));
+  const target = letterFeature(refPcm, parsed.glyph, parsed.vowel);
+  const userFeat = letterFeature(userPcm, parsed.glyph, parsed.vowel);
+  if (!target) {
+    letterDebug(`unscorable reason=noRefFeat key=${targetKey} refMs=${Math.round(refPcm.length / 16)}`);
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
+  }
+  if (!userFeat) {
+    letterDebug(
+      `unscorable reason=noUserFeat userMs=${Math.round(userPcm.length / 16)} (min ${LETTER_MIN_SAMPLES / 16}) ` +
+      `snr=${quality.snrDb.toFixed(1)}dB clip=${(quality.clipping * 100).toFixed(1)}%`,
+    );
     return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
   }
 
@@ -734,7 +754,7 @@ export async function assessLetter(
     );
   }
 
-  return { score, method: "reference", qualityOk, distance: targetEff, durationRatio: metrics.durationRatio, snrDb: quality.snrDb, qualityLabel, metrics };
+  return { score, method: "reference", qualityOk: true, distance: targetEff, durationRatio: metrics.durationRatio, snrDb: quality.snrDb, qualityLabel, metrics };
 }
 
 /* ---------- microphone capture ---------- */
