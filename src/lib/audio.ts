@@ -103,6 +103,28 @@ export function syllableSimilarity(target: string, transcript: string) {
   return similarity(target, transcript);
 }
 
+function isSingleShortWord(s: string) {
+  return !s.includes(" ") && s.length > 0 && s.length <= 6;
+}
+
+/**
+ * Stricter score for a short single word (e.g. سُكَّر, زَرَافَة). Recognition is
+ * a reliable identity oracle, so when it reports a different consonant
+ * (zarāfa heard as قرافه) that is a wrong word, not a near-miss. A single
+ * substitution lands below the 70 pass mark; heavier diffs fall further. This
+ * is intentionally steeper than the base similarity for short words only —
+ * multi-word phrases keep the lenient partial-credit path in transcribeScore.
+ */
+function strictShortWordScore(t: string, h: string, baseSim: number) {
+  if (t === h) return 100;
+  const dist = levenshtein(t, h);
+  // One wrong consonant in a short word: close, but it fails.
+  if (dist === 1) return 62;
+  const maxLen = Math.max(t.length, h.length);
+  const strict = Math.max(0, Math.round((1 - dist / (maxLen * 0.5)) * 100));
+  return Math.min(baseSim, strict);
+}
+
 export function transcribeScore(target: string, transcript: string) {
   const t = normalizeArabic(target);
   const h = normalizeArabic(transcript);
@@ -116,6 +138,10 @@ export function transcribeScore(target: string, transcript: string) {
   if (h.length >= 3 && t.includes(h)) {
     const coverage = Math.min(1, h.length / t.length);
     return Math.max(sim, Math.round(60 + 40 * coverage));
+  }
+  // Short single word: a wrong consonant must fail, not pass as "very good".
+  if (isSingleShortWord(t) && isSingleShortWord(h)) {
+    return strictShortWordScore(t, h, sim);
   }
   return sim;
 }
