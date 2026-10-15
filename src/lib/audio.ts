@@ -146,7 +146,13 @@ export function transcribeScore(target: string, transcript: string) {
   return sim;
 }
 
-type RecogResult = { transcript: string; score: number; error?: string };
+type RecogResult = {
+  transcript: string;
+  score: number;
+  error?: string;
+  /** Every alternative the recognizer returned, scored — for diagnostics only. */
+  alternatives?: { transcript: string; score: number }[];
+};
 
 const RECOG_ERROR_MESSAGES: Record<string, string> = {
   "not-allowed": "Microphone access was blocked. Allow microphone access and try again.",
@@ -179,23 +185,26 @@ export function listen(target: string, ms = 4000): Promise<RecogResult> {
     r.continuous = false;
     let done = false;
     let sawResult = false;
-    const finish = (t: string, error?: string) => {
+    const finish = (t: string, error?: string, alternatives?: { transcript: string; score: number }[]) => {
       if (done) return;
       done = true;
       try { r.stop(); } catch { /* noop */ }
       if (error) { resolve({ transcript: "", score: 0, error }); return; }
-      resolve({ transcript: t, score: t ? transcribeScore(target, t) : 0 });
+      resolve({ transcript: t, score: t ? transcribeScore(target, t) : 0, alternatives });
     };
     r.onresult = (e: any) => {
       sawResult = true;
       let best = "";
       let bestScore = -1;
+      const alternatives: { transcript: string; score: number }[] = [];
       for (let i = 0; i < e.results[0].length; i++) {
         const alt = e.results[0][i].transcript as string;
         const s = transcribeScore(target, alt);
+        alternatives.push({ transcript: alt, score: s });
         if (s > bestScore) { bestScore = s; best = alt; }
       }
-      finish(best);
+      alternatives.sort((a, b) => b.score - a.score);
+      finish(best, undefined, alternatives);
     };
     // Only genuine silence ("no-speech"/"aborted") is treated as an empty
     // result. Every other failure (blocked mic, no device, network, unsupported

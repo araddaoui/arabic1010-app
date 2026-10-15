@@ -13,6 +13,7 @@ import {
   loadReference,
   assessAgainstReference,
   assessDebugEnabled,
+  normalizeArabic,
   PASS_SCORE,
   scoreBand,
   bandMessage,
@@ -90,6 +91,15 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const [notice, setNotice] = useState<{ title: string; body: string } | null>(null);
   const [quality, setQuality] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<AssessmentMetrics | null>(null);
+  const [recogInfo, setRecogInfo] = useState<{
+    mode: string;
+    target: string;
+    targetNorm: string;
+    transcript: string;
+    score: number;
+    error?: string;
+    alternatives: { transcript: string; score: number }[];
+  } | null>(null);
   const [progressIdx, setProgressIdx] = useState(-1);
   const recRef = useRef<{ stop: () => void } | null>(null);
   const model = hashBars(fileKey + text);
@@ -97,7 +107,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   const bandStyle = band ? BAND_STYLE[band] : null;
 
   useEffect(() => () => { stopAll(); recRef.current?.stop(); }, []);
-  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setListening(false); }, [fileKey]);
+  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setRecogInfo(null); setListening(false); }, [fileKey]);
 
   const doPlay = async (r = rate) => {
     setPlaying(true);
@@ -183,6 +193,20 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       stream?.getTracks().forEach((t) => t.stop());
     }
     setRecording(false);
+
+    setRecogInfo(
+      recogResult
+        ? {
+            mode,
+            target: text,
+            targetNorm: normalizeArabic(text),
+            transcript: recogResult.transcript,
+            score: recogResult.score,
+            error: recogResult.error,
+            alternatives: recogResult.alternatives ?? [],
+          }
+        : null,
+    );
 
     const finalLevels = captured.length
       ? captured.filter((_, i) => i % Math.max(1, Math.floor(captured.length / 44)) === 0).slice(0, 44)
@@ -369,6 +393,19 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 {`dMean=${metrics.dMean.toFixed(3)}  dWorst=${metrics.dWorst.toFixed(3)}  dEff=${metrics.dEff.toFixed(3)}
 contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  z=${metrics.targetZ === null ? "—" : metrics.targetZ.toFixed(2)}  score=${metrics.score}
 ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
+        </pre>
+      )}
+
+      {assessDebugEnabled() && recogInfo && (
+        <pre
+          dir="ltr"
+          className="mt-2 overflow-x-auto rounded-lg border border-gold/25 bg-black/40 p-2 text-[10px] leading-snug text-gold/80"
+        >
+{`mode=${recogInfo.mode}
+target="${recogInfo.target}" norm="${recogInfo.targetNorm}"
+chosen="${recogInfo.transcript}" (norm="${normalizeArabic(recogInfo.transcript)}") score=${recogInfo.score}${recogInfo.error ? ` error=${recogInfo.error}` : ""}
+alts=${recogInfo.alternatives.length}
+${recogInfo.alternatives.map((a, i) => `  [${i}] "${a.transcript}" norm="${normalizeArabic(a.transcript)}" → ${a.score}`).join("\n")}`}
         </pre>
       )}
     </div>
