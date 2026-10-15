@@ -12,6 +12,7 @@ import {
   recordClip,
   loadReference,
   assessAgainstReference,
+  assessLetter,
   assessDebugEnabled,
   normalizeArabic,
   PASS_SCORE,
@@ -19,8 +20,9 @@ import {
   bandMessage,
   type ScoreBand,
   type AssessmentMetrics,
+  type Assessment,
 } from "@/lib/audio";
-import { contrastKeys } from "@/lib/contrast";
+import { contrastKeys, letterScoringKeys } from "@/lib/contrast";
 import { cn } from "@/utils/cn";
 
 function hashBars(seed: string, n = 44) {
@@ -250,8 +252,15 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     //    letters always, and by not-yet-migrated word modules as a fallback.
     if ((mode === "acoustic" || mode === "hybrid") && blob && blob.size) {
       try {
-        const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
-        const a = await assessAgainstReference(src, blob, contrastSrcs);
+        let a: Assessment;
+        if (folder === "letters") {
+          // Explicit two-gate scorer: vowel (quality + length) and consonant.
+          const refs = letterScoringKeys(fileKey).map((k) => ({ key: k, src: audioPath("letters", k) }));
+          a = await assessLetter(src, fileKey, blob, refs);
+        } else {
+          const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
+          a = await assessAgainstReference(src, blob, contrastSrcs);
+        }
         setMetrics(a.metrics ?? null);
         setQuality(a.qualityLabel ?? null);
         if (a.method !== "reference" || !a.qualityOk) {
@@ -392,7 +401,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         >
 {`dMean=${metrics.dMean.toFixed(3)}  dWorst=${metrics.dWorst.toFixed(3)}  dEff=${metrics.dEff.toFixed(3)}
 contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  z=${metrics.targetZ === null ? "—" : metrics.targetZ.toFixed(2)}  score=${metrics.score}
-ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
+ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%${metrics.qualityTarget ? `
+gates: quality=${metrics.qualityHeard} (want ${metrics.qualityTarget})${metrics.qualityHeard === metrics.qualityTarget ? " ✓" : " ✗"}  length=${metrics.lengthOk ? "✓" : "✗"}  consonant=${metrics.consonantOk ? "✓" : "✗"}
+dur: user=${Math.round(metrics.userMs ?? 0)}ms  short=${Math.round(metrics.shortMs ?? 0)}ms` : ""}`}
         </pre>
       )}
 

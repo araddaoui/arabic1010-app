@@ -312,6 +312,13 @@ export type AssessmentMetrics = {
   score: number;
   snrDb: number;
   clipping: number;
+  /** Two-gate (letters) diagnostics. */
+  qualityHeard?: string;
+  qualityTarget?: string;
+  userMs?: number;
+  shortMs?: number;
+  lengthOk?: boolean;
+  consonantOk?: boolean;
 };
 
 export type Assessment = {
@@ -533,6 +540,201 @@ export async function assessAgainstReference(
     qualityLabel,
     metrics,
   };
+}
+
+/* ---------- letters: explicit two-gate scoring ---------- */
+
+// Short/long vowel forms are phonemic: a wrong vowel (quality *or* length) and a
+// wrong consonant must both fail. The acoustic model is duration-blind (DTW
+// warps it away, and mean/variance normalisation flattens an isolated vowel), so
+// instead of one blended distance we make two explicit decisions:
+//   1) vowel gate  — quality (a/i/u) via the steady-vowel spectrum, and length
+//      (short/long) via duration relative to the letter's own short form;
+//   2) consonant gate — the onset must sit closest to the target consonant.
+// Only when both agree with the target do we let the attempt pass.
+
+type LetterVowel = "fatha" | "kasra" | "dhamma" | "long_alif" | "long_ya" | "long_waw";
+type VowelQuality = "a" | "i" | "u";
+
+const LETTER_VOWELS: Record<LetterVowel, { quality: VowelQuality; length: "short" | "long"; shortOf: LetterVowel }> = {
+  fatha: { quality: "a", length: "short", shortOf: "fatha" },
+  kasra: { quality: "i", length: "short", shortOf: "kasra" },
+  dhamma: { quality: "u", length: "short", shortOf: "dhamma" },
+  long_alif: { quality: "a", length: "long", shortOf: "fatha" },
+  long_ya: { quality: "i", length: "long", shortOf: "kasra" },
+  long_waw: { quality: "u", length: "long", shortOf: "dhamma" },
+};
+
+/** A long vowel passes once it is this much longer than the letter's short form. */
+const LETTER_LEN_K = 1.5;
+/** Required margin before another consonant counts as a better match. */
+const LETTER_CONSONANT_MARGIN = 0.01;
+// Gate outcomes map onto the shared bands: pass comfortably clears PASS_SCORE,
+// a wrong vowel/consonant lands in the "close — try again" band.
+const LETTER_PASS_FLOOR = 82;
+const LETTER_FAIL_CAP = 62;
+
+function parseLetterKey(key: string): { glyph: string; vowel: LetterVowel } | null {
+  const i = key.lastIndexOf("_");
+  if (i <= 0) return null;
+  const glyph = key.slice(0, i);
+  const vowel = key.slice(i + 1) as LetterVowel;
+  if (!(vowel in LETTER_VOWELS)) return null;
+  return { glyph, vowel };
+}
+
+type LetterFeat = {
+  glyph: string;
+  vowel: LetterVowel;
+  quality: VowelQuality;
+  length: "short" | "long";
+  /** L2-normalised mean of C1..C12 over the steady vowel (spectral shape). */
+  color: Float32Array;
+  /** Voiced duration of the trimmed syllable, in ms. */
+  durMs: number;
+  /** Variance-normalised frames, for the onset/consonant DTW comparison. */
+  frames: Float32Array[];
+};
+
+function letterFeature(pcm: Float32Array, glyph: string, vowel: LetterVowel): LetterFeat | null {
+  if (pcm.length < 1600) return null;
+  const raw = mfccFrames(pcm);
+  if (!raw.length) return null;
+  const frames = cepstralVarianceNormalize(raw);
+  // Steady vowel: the middle of the syllable, where the vowel colour dominates.
+  const dim = 12;
+  const from = Math.floor(raw.length * 0.2);
+  const to = Math.max(from + 1, Math.ceil(raw.length * 0.8));
+  const color = new Float32Array(dim);
+  let n = 0;
+  for (let f = from; f < to && f < raw.length; f++) {
+    for (let d = 0; d < dim; d++) color[d] += raw[f][d + 1]; // skip C0 (level/channel)
+    n++;
+  }
+  if (n) for (let d = 0; d < dim; d++) color[d] /= n;
+  let norm = 0;
+  for (let d = 0; d < dim; d++) norm += color[d] * color[d];
+  norm = Math.sqrt(norm) || 1;
+  for (let d = 0; d < dim; d++) color[d] /= norm;
+  const info = LETTER_VOWELS[vowel];
+  return { glyph, vowel, quality: info.quality, length: info.length, color, durMs: pcm.length / 16, frames };
+}
+
+function colorDistance(a: Float32Array, b: Float32Array): number {
+  let dot = 0;
+  for (let d = 0; d < a.length; d++) dot += a[d] * b[d];
+  return 1 - Math.max(-1, Math.min(1, dot));
+}
+
+/**
+ * Score a letter/vowel form with explicit vowel (quality + length) and consonant
+ * gates. `refs` are the same-letter vowel forms and same-vowel confusable
+ * consonants (see `letterScoringKeys`).
+ */
+export async function assessLetter(
+  refSrc: string,
+  targetKey: string,
+  userBlob: Blob,
+  refs: { key: string; src: string }[],
+): Promise<Assessment> {
+  const parsed = parseLetterKey(targetKey);
+  const [ref, user] = await Promise.all([loadReference(refSrc), decodeBlob(userBlob)]);
+  const rawUser = toMono16k(user);
+  const quality = recordingQuality(rawUser);
+  const qualityOk = qualityAcceptable(quality);
+  const qualityLabel = recordingQualityLabel(quality);
+
+  if (!parsed) {
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
+  }
+  const target = letterFeature(trimSilence(toMono16k(ref)), parsed.glyph, parsed.vowel);
+  const userFeat = letterFeature(trimSilence(rawUser), parsed.glyph, parsed.vowel);
+  if (!target || !userFeat) {
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
+  }
+
+  const refFeats: LetterFeat[] = [];
+  for (const r of refs) {
+    const p = parseLetterKey(r.key);
+    if (!p) continue;
+    try {
+      const buf = await loadReference(r.src);
+      const f = letterFeature(trimSilence(toMono16k(buf)), p.glyph, p.vowel);
+      if (f) refFeats.push(f);
+    } catch { /* missing reference — skip */ }
+  }
+
+  const eff = (f: LetterFeat) => effectiveDistance(dtwProfile(f.frames, userFeat.frames, 0.25, "cosine")).dEff;
+  const targetEff = eff(target);
+
+  // Base score: the target's z-position among the candidate distances (kept for
+  // gradation between "good" and "excellent"; the gates decide pass/fail).
+  const contrastEffs: number[] = [];
+  for (const f of refFeats) {
+    const de = eff(f);
+    if (isFinite(de)) contrastEffs.push(de);
+  }
+  let base: number;
+  if (contrastEffs.length && isFinite(targetEff)) {
+    const cands = [targetEff, ...contrastEffs];
+    const mean = cands.reduce((a, b) => a + b, 0) / cands.length;
+    const std = Math.max(Math.sqrt(cands.reduce((a, b) => a + (b - mean) ** 2, 0) / cands.length), 0.02);
+    const z = (mean - targetEff) / std;
+    base = 100 / (1 + Math.exp((Z_BIAS - z) / Z_SLOPE));
+  } else {
+    base = isFinite(targetEff) ? 100 / (1 + Math.exp((targetEff - SCORE_MID) / SCORE_SLOPE)) : 0;
+  }
+
+  // Gate 1a — vowel quality: the user's vowel colour must sit closest to the
+  // target quality among the same letter's other vowel forms.
+  let qualityHeard: VowelQuality = target.quality;
+  let bestColor = Infinity;
+  for (const f of [target, ...refFeats.filter((f) => f.glyph === target.glyph)]) {
+    const cd = colorDistance(f.color, userFeat.color);
+    if (cd < bestColor) { bestColor = cd; qualityHeard = f.quality; }
+  }
+  const qualityMatch = qualityHeard === target.quality;
+
+  // Gate 1b — vowel length: a long vowel must be clearly longer than the short
+  // form of the same quality; a short vowel must not drift into long territory.
+  const shortForm = target.length === "short"
+    ? target
+    : refFeats.find((f) => f.glyph === target.glyph && f.vowel === LETTER_VOWELS[target.vowel].shortOf);
+  const shortMs = shortForm?.durMs ?? target.durMs;
+  const lengthThreshold = shortMs * LETTER_LEN_K;
+  const lengthOk = target.length === "long" ? userFeat.durMs >= lengthThreshold : userFeat.durMs < lengthThreshold;
+
+  // Gate 2 — consonant: the onset must match the target consonant better than any
+  // confusable consonant carrying the same vowel.
+  let consonantOk = true;
+  for (const f of refFeats) {
+    if (f.vowel !== target.vowel || f.glyph === target.glyph) continue;
+    const de = eff(f);
+    if (isFinite(de) && de < targetEff - LETTER_CONSONANT_MARGIN) { consonantOk = false; break; }
+  }
+
+  const gatesPass = qualityMatch && lengthOk && consonantOk;
+  const qf = qualityFactor(quality);
+  let score = gatesPass ? Math.max(base, LETTER_PASS_FLOOR) : Math.min(base, LETTER_FAIL_CAP);
+  score = Math.max(0, Math.min(100, Math.round(score * qf)));
+
+  const metrics: AssessmentMetrics = {
+    dMean: targetEff, dWorst: targetEff, dEff: targetEff, contrast: contrastEffs.length ? Math.min(...contrastEffs) : null,
+    margin: contrastEffs.length ? Math.min(...contrastEffs) - targetEff : null, targetZ: null,
+    durationRatio: target.durMs ? userFeat.durMs / target.durMs : 0, score, snrDb: quality.snrDb, clipping: quality.clipping,
+    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, lengthOk, consonantOk,
+  };
+
+  if (import.meta.env.DEV || assessDebugEnabled()) {
+    console.debug(
+      `[letter] target=${targetKey} heardQuality=${qualityHeard} targetQuality=${target.quality} ` +
+      `user=${Math.round(userFeat.durMs)}ms short=${Math.round(shortMs)}ms threshold=${Math.round(lengthThreshold)}ms ` +
+      `lengthOk=${lengthOk} consonantOk=${consonantOk} qualityMatch=${qualityMatch} ` +
+      `targetEff=${targetEff.toFixed(3)} base=${Math.round(base)} gates=${gatesPass} score=${score}`,
+    );
+  }
+
+  return { score, method: "reference", qualityOk, distance: targetEff, durationRatio: metrics.durationRatio, snrDb: quality.snrDb, qualityLabel, metrics };
 }
 
 /* ---------- microphone capture ---------- */

@@ -74,6 +74,24 @@ function letterContrasts(key: string): string[] {
   return out.slice(0, LETTER_TOTAL_CAP);
 }
 
+/**
+ * Full reference set for scoring a letter/vowel form with the two-gate design:
+ * the 5 other vowel forms of the same letter (vowel quality + length) plus the
+ * phonetically confusable consonants carrying the *same* vowel (consonant
+ * identity). Unlike `letterContrasts` this is not capped, because the scorer
+ * needs every vowel form present to make an explicit short/long decision.
+ */
+export function letterScoringKeys(key: string): string[] {
+  const sep = key.lastIndexOf("_");
+  if (sep <= 0) return [];
+  const glyph = key.slice(0, sep);
+  const vowel = key.slice(sep + 1);
+  const out: string[] = [];
+  for (const v of VOWELS) if (v.key !== vowel) out.push(`${glyph}_${v.key}`);
+  for (const near of CONFUSABLE[glyph] ?? []) out.push(`${near}_${vowel}`);
+  return out;
+}
+
 function firstArabicLetter(ar: string): string {
   const cleaned = ar.replace(/[\u064B-\u0652\u0670\u0640\s]/g, "");
   return cleaned.charAt(0);
