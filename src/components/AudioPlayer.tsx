@@ -325,7 +325,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           className="mt-2 overflow-x-auto rounded-lg border border-gold/25 bg-black/40 p-2 text-[10px] leading-snug text-gold/80"
         >
 {`dMean=${metrics.dMean.toFixed(3)}  dWorst=${metrics.dWorst.toFixed(3)}  dEff=${metrics.dEff.toFixed(3)}
-contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  score=${metrics.score}
+contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  z=${metrics.targetZ === null ? "—" : metrics.targetZ.toFixed(2)}  score=${metrics.score}
 ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
         </pre>
       )}

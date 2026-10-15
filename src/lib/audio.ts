@@ -214,6 +214,7 @@ export type AssessmentMetrics = {
   dEff: number;
   contrast: number | null;
   margin: number | null;
+  targetZ: number | null;
   durationRatio: number;
   score: number;
   snrDb: number;
@@ -233,27 +234,24 @@ export type Assessment = {
 
 // --- scoring calibration ---------------------------------------------------
 // Frames are mean/variance normalized and compared with a scale-free cosine
-// distance (0 = identical spectral direction), so a genuine same-voice match
-// lands near 0 while phonetically different clips sit well above it. The
-// logistic below maps the effective distance onto 0-100.
-//
-// NOTE: these constants are placeholders pending real measurements captured
-// with ?assess=debug (they will be tightened once the same-voice distance for
-// the reference set is known).
+// distance (0 = identical spectral direction). Rather than chase an absolute
+// threshold — which depends on the speaker, mic and codec, and produced false
+// negatives on short isolated items — the score is driven by how the target
+// model compares to its confusable references (e.g. the same letter with other
+// vowels). A correct attempt is *closest* to its own model; how far it beats
+// the spread of the whole candidate set is the target's z-score, which is
+// self-calibrating and needs no per-browser tuning.
+const Z_BIAS = -0.8; // z that maps to 50; negative so an average target still passes
+const Z_SLOPE = 0.8; // larger = gentler
+
+// Absolute logistic, used only when there are no contrasts to compare against.
 const SCORE_MID = 0.42; // effective distance that maps to ~50
-const SCORE_SLOPE = 0.06; // smaller = sharper contrast
+const SCORE_SLOPE = 0.11; // gentler than before
 
-// A single mispronounced phone must be able to fail the whole attempt, so the
-// effective distance leans on the *worst* part of the alignment, not just the
-// average. WORST_WEIGHT is the share of the worst-frame distance in dEff.
-const WORST_WEIGHT = 0.65;
-const WORST_PERCENTILE = 0.9;
-
-// Discriminative cap: when a contrast reference is actually closer than the
-// target (margin < MARGIN_SAFE), the attempt likely sounds like a different
-// item, so the score is capped low and falls off with the margin.
-const MARGIN_SAFE = 0.0;
-const MARGIN_RAMP = 150;
+// Worst-frame influence: keep a *little* emphasis on the weakest part of the
+// alignment without letting a single noisy frame dominate a short clip.
+const WORST_WEIGHT = 0.35;
+const WORST_PERCENTILE = 0.8;
 
 /** Percentile of a distance profile (0..1). */
 function percentile(values: Float32Array, p: number): number {
@@ -271,11 +269,6 @@ function effectiveDistance(profile: DtwProfile): { dMean: number; dWorst: number
   return { dMean, dWorst: worst, dEff: (1 - WORST_WEIGHT) * dMean + WORST_WEIGHT * worst };
 }
 
-function marginCap(margin: number | null): number {
-  if (margin === null || margin >= MARGIN_SAFE) return 100;
-  return Math.max(8, 55 + margin * MARGIN_RAMP);
-}
-
 /** How much to trust the score given capture cleanliness (1.0 = pristine). */
 function qualityFactor(q: RecordingQuality): number {
   const snr = Math.max(0, Math.min(1, (q.snrDb - 8) / 12));
@@ -286,7 +279,7 @@ function qualityFactor(q: RecordingQuality): number {
 function recordingQualityLabel(q: RecordingQuality): string {
   if (q.clipping > 0.02) return "Too loud — clipping; lower the input level";
   if (q.snrDb < 12) return "Noisy recording — a quieter spot helps";
-  if (q.level < 0.03) return "Very quiet — move closer to the mic";
+  if (q.level < 0.015) return "Very quiet — move closer to the mic";
   return "Clear recording";
 }
 
@@ -330,7 +323,10 @@ export function assessDebugEnabled(): boolean {
 
 /** Whether a capture is clean enough to score, or should prompt a re-record. */
 function qualityAcceptable(q: RecordingQuality): boolean {
-  return q.clipping <= 0.06 && q.snrDb >= 6 && q.level >= 0.02 && q.voicedMs >= 150;
+  // Level is judged *relative to the recording's own noise floor* via SNR, so a
+  // quiet-but-clean mic is not rejected as "too quiet". Only genuine silence
+  // (near-zero SNR / voiced length) fails.
+  return q.clipping <= 0.06 && q.snrDb >= 5 && q.voicedMs >= 120;
 }
 
 /**
@@ -368,7 +364,12 @@ export async function assessAgainstReference(
   const userFrames = cepstralVarianceNormalize(mfccFrames(userPcm));
   const { dMean, dWorst, dEff } = effectiveDistance(dtwProfile(refFrames, userFrames, 0.25, "cosine"));
 
-  // Discriminative margin: how much closer the target is than the best contrast.
+  // Confusable references (e.g. the same letter with another vowel). Collect
+  // every contrast distance and score *relatively*: the target must sit closest
+  // to its own model, and by how much it beats the spread of the candidate set
+  // determines the score. This is self-calibrating and directly encodes
+  // "sounds like the right item".
+  const contrastDists: number[] = [];
   let contrast: number | null = null;
   for (const cs of contrastSrcs) {
     try {
@@ -377,31 +378,53 @@ export async function assessAgainstReference(
       if (cPcm.length < 1600) continue;
       const cFrames = cepstralVarianceNormalize(mfccFrames(cPcm));
       const ce = effectiveDistance(dtwProfile(cFrames, userFrames, 0.25, "cosine")).dEff;
-      if (contrast === null || ce < contrast) contrast = ce;
+      if (isFinite(ce)) {
+        contrastDists.push(ce);
+        if (contrast === null || ce < contrast) contrast = ce;
+      }
     } catch { /* missing/unreadable contrast file — skip it */ }
   }
   const margin = contrast === null ? null : contrast - dEff;
 
+  // Relative score from the target's z-position among the candidates.
+  let targetZ: number | null = null;
+  let score: number;
+  if (contrastDists.length) {
+    const cands = [dEff, ...contrastDists];
+    const mean = cands.reduce((a, b) => a + b, 0) / cands.length;
+    const variance = cands.reduce((a, b) => a + (b - mean) ** 2, 0) / cands.length;
+    const std = Math.max(Math.sqrt(variance), 0.02);
+    targetZ = (mean - dEff) / std;
+    score = 100 / (1 + Math.exp((Z_BIAS - targetZ) / Z_SLOPE));
+  } else {
+    // No contrasts available — fall back to the gentle absolute logistic.
+    score = 100 / (1 + Math.exp((dEff - SCORE_MID) / SCORE_SLOPE));
+  }
+
   const durationRatio =
     Math.min(refPcm.length, userPcm.length) / Math.max(refPcm.length, userPcm.length);
   const qf = qualityFactor(quality);
-  const absScore = 100 / (1 + Math.exp((dEff - SCORE_MID) / SCORE_SLOPE));
   // Only penalise a genuinely mismatched length; a little slack is normal.
   const dur = durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio;
-  const score = Math.max(0, Math.min(100, Math.round(Math.min(absScore, marginCap(margin)) * dur * qf)));
+  // Soft guard: a correct match should never be far from its own model, so only
+  // damp the score when the target distance is implausibly large (garbage, or a
+  // different sound that happens not to be in the contrast set).
+  const guard = dEff <= 0.55 ? 1 : Math.max(0.4, 1 - (dEff - 0.55) * 2);
+  score = Math.max(0, Math.min(100, Math.round(score * guard * dur * qf)));
 
   const metrics: AssessmentMetrics = {
-    dMean, dWorst, dEff, contrast, margin, durationRatio, score,
+    dMean, dWorst, dEff, contrast, margin, targetZ, durationRatio, score,
     snrDb: quality.snrDb, clipping: quality.clipping,
   };
 
   // Calibration aid: run with `?assess=debug` (any build) to read the raw
-  // numbers and tune SCORE_MID / SCORE_SLOPE / WORST_WEIGHT.
+  // numbers and tune Z_BIAS / Z_SLOPE / WORST_WEIGHT.
   if (import.meta.env.DEV || assessDebugEnabled()) {
     console.debug(
       `[assess] ref=${Math.round(refPcm.length / 16)}ms user=${Math.round(userPcm.length / 16)}ms ` +
       `dMean=${dMean.toFixed(3)} dWorst=${dWorst.toFixed(3)} dEff=${dEff.toFixed(3)} ` +
       `contrast=${contrast === null ? "—" : contrast.toFixed(3)} margin=${margin === null ? "—" : margin.toFixed(3)} ` +
+      `z=${targetZ === null ? "—" : targetZ.toFixed(2)} ` +
       `ratio=${durationRatio.toFixed(2)} snr=${quality.snrDb.toFixed(1)}dB ` +
       `clip=${(quality.clipping * 100).toFixed(1)}% qf=${qf.toFixed(2)} score=${score}`,
     );
@@ -422,12 +445,14 @@ export async function assessAgainstReference(
 /* ---------- microphone capture ---------- */
 
 export async function openMic(): Promise<MediaStream> {
-  // Disable the browser's DSP (AGC / noise suppression / echo cancellation) so
-  // the captured spectrum reflects the learner's actual voice rather than being
-  // reshaped by processing that fights the MFCC comparison.
+  // Keep automatic gain control on so a quiet mic still produces a usable
+  // level — the MFCC comparison cancels overall level via mean/variance
+  // normalization anyway, so AGC does not distort the phonetic content. We do
+  // disable noise suppression and echo cancellation, whose spectral sculpting
+  // would fight the comparison.
   return navigator.mediaDevices.getUserMedia({
     audio: {
-      autoGainControl: false,
+      autoGainControl: true,
       noiseSuppression: false,
       echoCancellation: false,
     },
