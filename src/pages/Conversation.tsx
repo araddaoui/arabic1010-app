@@ -157,7 +157,8 @@ export default function Conversation() {
               </div>
               <div className="mt-3">
                 <AudioPlayer folder="dialogue" fileKey={line.id} text={line.ar}
-                  onScore={(s) => { if (s >= PASS_SCORE) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); } }} />
+                  onScore={(s) => { if (s >= PASS_SCORE) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); } }}
+                  onSkip={() => setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1))} />
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <Button variant="ghost" onClick={() => setLineIdx((i) => Math.max(0, i - 1))} disabled={lineIdx === 0}>→ Previous line</Button>
@@ -209,7 +210,8 @@ export default function Conversation() {
                   onScore={(s) => {
                     setRpLog((l) => [...l, { who: "you", text: rpLine.ar, score: s }]);
                      if (s >= PASS_SCORE) { setRpIdx((i) => i + 1); award("dialogue", rpLine.id, 25); }
-                   }} />
+                   }}
+                  onSkip={() => { setRpLog((l) => [...l, { who: "you", text: rpLine.ar }]); setRpIdx((i) => i + 1); }} />
               </div>
             ) : (
               <Button className="mt-3" onClick={async () => {

@@ -199,7 +199,8 @@ export default function Quiz({
             <div>
               <div className="mb-3 rounded-xl bg-white/5 py-6 text-center"><span className="ar-c text-5xl">{q.text}</span></div>
               <AudioPlayer folder={q.folder} fileKey={q.fileKey} text={q.text}
-                onScore={(s) => { setState(s >= PASS_SCORE ? "right" : "reveal"); advance(s >= PASS_SCORE); }} />
+                onScore={(s) => { setState(s >= PASS_SCORE ? "right" : "reveal"); advance(s >= PASS_SCORE); }}
+                onSkip={() => { setState("reveal"); advance(false); }} />
             </div>
           )}
 

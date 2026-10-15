@@ -22,21 +22,6 @@ import {
 import { contrastKeys } from "@/lib/contrast";
 import { cn } from "@/utils/cn";
 
-function estimateFromLevels(captured: number[]) {
-  if (!captured.length) return 60;
-  let peak = 0;
-  let sum = 0;
-  let voiced = 0;
-  for (const v of captured) {
-    if (v > peak) peak = v;
-    sum += v;
-    if (v > 0.08) voiced++;
-  }
-  const avg = sum / captured.length;
-  const voicedRatio = voiced / captured.length;
-  return Math.round(Math.min(92, Math.max(45, 45 + peak * 25 + avg * 20 + voicedRatio * 20)));
-}
-
 function hashBars(seed: string, n = 44) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -82,9 +67,10 @@ type Props = {
   allowRecord?: boolean;
   compact?: boolean;
   onScore?: (score: number) => void;
+  onSkip?: () => void;
 };
 
-export default function AudioPlayer({ folder, fileKey, text, label, allowRecord = true, compact, onScore }: Props) {
+export default function AudioPlayer({ folder, fileKey, text, label, allowRecord = true, compact, onScore, onSkip }: Props) {
   const src = audioPath(folder, fileKey);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
@@ -126,6 +112,8 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     let analyzer: { stop: () => void } | null = null;
     let clip: { stop: () => void; done: Promise<Blob | null> } | null = null;
     let blob: Blob | null = null;
+    let targetMs = 3200;
+    let recogPromise: ReturnType<typeof listen> | null = null;
 
     try {
       stream = await openMic();
@@ -137,12 +125,16 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 
       // Match the learner's recording window to the native-speaker model so the
       // two clips are comparable in DTW.
-      let targetMs = 3200;
       try {
         const ref = await loadReference(src);
         targetMs = Math.min(6000, Math.max(1500, Math.round(ref.duration * 1000 * 1.6)));
       } catch { /* model unavailable — use the default window */ }
 
+      // Listen and record the *same* utterance: recognition runs alongside the
+      // MediaRecorder so the learner only speaks once.
+      if (speechSupported()) {
+        recogPromise = listen(text, Math.min(6000, Math.max(2500, targetMs)));
+      }
       clip = recordClip(stream, targetMs);
       blob = await clip.done;
     } catch {
@@ -169,49 +161,57 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       return;
     }
 
-    // 1) Compare against the native-speaker model — the primary, browser-only score.
-    if (blob && blob.size) {
-      try {
-        const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
-        const a = await assessAgainstReference(src, blob, contrastSrcs);
-        if (a.method === "reference") {
-          setMetrics(a.metrics ?? null);
-          if (!a.qualityOk) {
-            // Too noisy / clipped / quiet to trust — ask for a re-record, no score.
-            setHeard("");
-            setScore(null);
-            setQuality(a.qualityLabel ?? null);
-            setNotice({
-              title: "Let's try that again",
-              body: `${a.qualityLabel ?? "We couldn't hear that clearly"}. Move to a quieter spot, hold the device closer to your mouth, and record again.`,
-            });
-            return;
-          }
-          setHeard("");
-          setScore(a.score);
-          setQuality(a.qualityLabel ?? null);
-          onScore?.(a.score);
-          return;
-        }
-      } catch { /* couldn't decode the clip — fall through */ }
-    }
+    const isLetter = folder === "letters";
 
-    // 2) Optional secondary signal: recognised text vs. the target.
-    if (speechSupported()) {
-      const res = await listen(text, 1500);
-      if (!res.error && res.transcript) {
+    // 1) Recognition understands *what* was said, so it is fairer than template
+    //    matching for words. It is vowel-blind, though: `normalizeArabic` strips
+    //    harakat, so it cannot tell بَ from بِ. Letters/syllables therefore skip
+    //    recognition and go straight to the acoustic path, which is sensitive to
+    //    the vowel form.
+    if (!isLetter) {
+      const res = recogPromise ? await recogPromise : null;
+      if (res && !res.error && res.transcript) {
         setHeard(res.transcript);
         setScore(res.score);
+        setQuality(null);
         onScore?.(res.score);
         return;
       }
     }
 
-    // 3) Never leave the learner without a score.
-    const fallback = estimateFromLevels(captured);
+    // 2) Acoustic cross-check against the native-speaker model, with confusable
+    //    references as contrasts, so a wrong letter/word can actually fail.
+    if (blob && blob.size) {
+      try {
+        const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
+        const a = await assessAgainstReference(src, blob, contrastSrcs);
+        setMetrics(a.metrics ?? null);
+        setQuality(a.qualityLabel ?? null);
+        if (a.method !== "reference" || !a.qualityOk) {
+          // Unscorable (too short / no model) or too noisy to trust — ask for a
+          // re-record rather than inventing a score from loudness.
+          setScore(null);
+          setNotice({
+            title: "Let's try that again",
+            body: `${a.qualityLabel ?? "We couldn't hear that clearly"}. Move to a quieter spot, hold the device closer to your mouth, and record again.`,
+          });
+          return;
+        }
+        setScore(a.score);
+        onScore?.(a.score);
+        return;
+      } catch { /* couldn't decode the clip/reference — fall through */ }
+    }
+
+    // 3) No trustworthy signal. Stay honest: no score, no loudness guess. Graded
+    //    contexts can still advance via the explicit self-assessment (onSkip).
     setHeard("");
-    setScore(fallback);
-    onScore?.(fallback);
+    setScore(null);
+    setQuality(null);
+    setNotice({
+      title: "We couldn't score that",
+      body: "Automatic pronunciation scoring isn't available for this recording. Check your microphone, then try again.",
+    });
   };
 
   return (
@@ -279,10 +279,10 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
               Retry
             </Button>
             {/* Graded contexts (quiz, dialogue practice) advance only via onScore.
-                Without this, an unsupported browser would soft-lock the learner on
-                any speaking question. Self-assessment is explicitly labelled as such. */}
-            {onScore && (
-              <Button size="sm" variant="ghost" onClick={() => onScore(PASS_SCORE)}>
+                `onSkip` lets an unsupported browser move on without soft-locking,
+                but it does NOT award: the caller advances without credit. */}
+            {onSkip && (
+              <Button size="sm" variant="ghost" onClick={onSkip}>
                 I said it — continue
               </Button>
             )}
@@ -305,7 +305,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
               {bandMessage(score)}
             </div>
             <div className="text-xs text-sand/50">
-              {heard ? <>Heard: <span className="ar" dir="rtl">{heard}</span></> : "Compared with the native-speaker model."}
+              {heard
+                ? <>Heard: <span className="ar" dir="rtl">{heard}</span></>
+                : "Compared with the native-speaker model."}
             </div>
             {quality && (
               <div className={cn("text-[11px]", quality === "Clear recording" ? "text-sand/40" : "text-gold/80")}>
@@ -324,7 +326,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         >
 {`dMean=${metrics.dMean.toFixed(3)}  dWorst=${metrics.dWorst.toFixed(3)}  dEff=${metrics.dEff.toFixed(3)}
 contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  score=${metrics.score}
-snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
+ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
         </pre>
       )}
     </div>

@@ -10,7 +10,6 @@ import {
   trimSilence,
   mfccFrames,
   cepstralVarianceNormalize,
-  rmsLevel,
   recordingQuality,
   type RecordingQuality,
 } from "@/lib/mfcc";
@@ -206,7 +205,7 @@ export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
   return audioCtx().decodeAudioData(bytes);
 }
 
-export type AssessmentMethod = "reference" | "estimate";
+export type AssessmentMethod = "reference" | "recognition" | "estimate";
 
 /** Raw numbers behind a score — surfaced by the `?assess=debug` HUD. */
 export type AssessmentMetrics = {
@@ -215,6 +214,7 @@ export type AssessmentMetrics = {
   dEff: number;
   contrast: number | null;
   margin: number | null;
+  durationRatio: number;
   score: number;
   snrDb: number;
   clipping: number;
@@ -318,11 +318,6 @@ export function bandMessage(score: number): string {
   return BAND_MESSAGES[scoreBand(score)];
 }
 
-function estimateFromAudio(samples: Float32Array): number {
-  const level = Math.min(1, rmsLevel(samples) / 0.12);
-  return Math.round(35 + level * 55);
-}
-
 /** Calibration HUD is available in any build via `?assess=debug`. */
 export function assessDebugEnabled(): boolean {
   try {
@@ -340,13 +335,16 @@ function qualityAcceptable(q: RecordingQuality): boolean {
 
 /**
  * Compare a learner's recording to the native-speaker model and return a
- * 0-100 similarity score. Runs entirely in the browser (MFCC + DTW); if the
- * clips are too short to compare, falls back to an energy estimate.
+ * 0-100 similarity score. Runs entirely in the browser (MFCC + DTW).
  *
  * `contrastSrcs` are optional reference files from the same folder that the
  * learner might plausibly have said instead (e.g. the same letter with another
- * vowel). The target must be the closest match, which is what lets a single
+ * vowel). The target must be the *closest* match, which is what lets a single
  * wrong letter fail rather than being averaged away.
+ *
+ * When either clip is too short to align, the result is reported as method
+ * "estimate" with `qualityOk: false`. That is an explicit *unscored* signal:
+ * callers must not turn it into a pass — loudness alone is not pronunciation.
  */
 export async function assessAgainstReference(
   refSrc: string,
@@ -362,8 +360,8 @@ export async function assessAgainstReference(
   const qualityLabel = recordingQualityLabel(quality);
 
   if (refPcm.length < 1600 || userPcm.length < 1600) {
-    const score = estimateFromAudio(userPcm);
-    return { score, method: "estimate", qualityOk, snrDb: quality.snrDb, qualityLabel };
+    // Too short to compare phonetically — never fabricate a score from level.
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
   }
 
   const refFrames = cepstralVarianceNormalize(mfccFrames(refPcm));
@@ -393,7 +391,7 @@ export async function assessAgainstReference(
   const score = Math.max(0, Math.min(100, Math.round(Math.min(absScore, marginCap(margin)) * dur * qf)));
 
   const metrics: AssessmentMetrics = {
-    dMean, dWorst, dEff, contrast, margin, score,
+    dMean, dWorst, dEff, contrast, margin, durationRatio, score,
     snrDb: quality.snrDb, clipping: quality.clipping,
   };
 
@@ -464,7 +462,7 @@ export function createAnalyzer(stream: MediaStream, onLevel: (v: number) => void
 /** Pick the best MediaRecorder mime type this browser supports. */
 export function recorderMime(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
-  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4", "audio/mpeg"];
   return candidates.find((c) => {
     try { return MediaRecorder.isTypeSupported(c); } catch { return false; }
   });
