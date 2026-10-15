@@ -82,13 +82,18 @@ function letterContrasts(key: string): string[] {
  * needs every vowel form present to make an explicit short/long decision.
  */
 export function letterScoringKeys(key: string): string[] {
-  const sep = key.lastIndexOf("_");
+  // First underscore: vowel keys such as "long_alif" contain one themselves.
+  const sep = key.indexOf("_");
   if (sep <= 0) return [];
   const glyph = key.slice(0, sep);
   const vowel = key.slice(sep + 1);
+  const valid = new Set(LETTERS.map((l) => l.id));
   const out: string[] = [];
+  if (!valid.has(glyph)) return [];
   for (const v of VOWELS) if (v.key !== vowel) out.push(`${glyph}_${v.key}`);
-  for (const near of CONFUSABLE[glyph] ?? []) out.push(`${near}_${vowel}`);
+  // Only confusables that are real letters with an audio file (skips hamza forms
+  // like أ/إ/آ that have no recordings).
+  for (const near of CONFUSABLE[glyph] ?? []) if (valid.has(near)) out.push(`${near}_${vowel}`);
   return out;
 }
 

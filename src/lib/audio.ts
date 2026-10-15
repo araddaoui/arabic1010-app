@@ -329,6 +329,8 @@ export type Assessment = {
   durationRatio?: number;
   snrDb?: number;
   qualityLabel?: string;
+  /** Why an attempt could not be scored (surfaced in the UI for diagnosis). */
+  unscorableReason?: string;
   metrics?: AssessmentMetrics;
 };
 
@@ -577,11 +579,13 @@ const LETTER_FAIL_CAP = 62;
 const LETTER_MIN_SAMPLES = 800;
 
 function letterDebug(msg: string) {
-  if (import.meta.env.DEV || assessDebugEnabled()) console.debug(`[letter] ${msg}`);
+  if (import.meta.env.DEV || assessDebugEnabled()) console.warn(`[letter] ${msg}`);
 }
 
 function parseLetterKey(key: string): { glyph: string; vowel: LetterVowel } | null {
-  const i = key.lastIndexOf("_");
+  // Split on the FIRST underscore: the glyph is a single letter, and vowel keys
+  // like "long_alif" themselves contain an underscore.
+  const i = key.indexOf("_");
   if (i <= 0) return null;
   const glyph = key.slice(0, i);
   const vowel = key.slice(i + 1) as LetterVowel;
@@ -656,21 +660,21 @@ export async function assessLetter(
 
   if (!parsed) {
     letterDebug(`unscorable reason=badKey key="${targetKey}"`);
-    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel, unscorableReason: `badKey (${targetKey})` };
   }
   const refPcm = trimSilence(toMono16k(ref));
   const target = letterFeature(refPcm, parsed.glyph, parsed.vowel);
   const userFeat = letterFeature(userPcm, parsed.glyph, parsed.vowel);
   if (!target) {
     letterDebug(`unscorable reason=noRefFeat key=${targetKey} refMs=${Math.round(refPcm.length / 16)}`);
-    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel, unscorableReason: `noRefFeat refMs=${Math.round(refPcm.length / 16)}` };
   }
   if (!userFeat) {
     letterDebug(
       `unscorable reason=noUserFeat userMs=${Math.round(userPcm.length / 16)} (min ${LETTER_MIN_SAMPLES / 16}) ` +
       `snr=${quality.snrDb.toFixed(1)}dB clip=${(quality.clipping * 100).toFixed(1)}%`,
     );
-    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
+    return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel, unscorableReason: `noUserFeat userMs=${Math.round(userPcm.length / 16)} (min ${LETTER_MIN_SAMPLES / 16})` };
   }
 
   const refFeats: LetterFeat[] = [];

@@ -269,7 +269,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           setScore(null);
           setNotice({
             title: "Let's try that again",
-            body: `${a.qualityLabel ?? "We couldn't hear that clearly"}. Move to a quieter spot, hold the device closer to your mouth, and record again.`,
+            body:
+              `${a.qualityLabel ?? "We couldn't hear that clearly"}. Move to a quieter spot, hold the device closer to your mouth, and record again.` +
+              (a.unscorableReason ? ` [${a.unscorableReason}]` : ""),
           });
           return;
         }
