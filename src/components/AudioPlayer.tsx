@@ -66,11 +66,19 @@ type Props = {
   label?: string;
   allowRecord?: boolean;
   compact?: boolean;
+  /**
+   * Which engine scores the learner. Words use speech recognition ("recognition")
+   * — it understands what was said and is stable; letters use the acoustic
+   * reference comparison ("acoustic") because recognition is vowel-blind. "auto"
+   * picks by folder. Each mode captures the mic a single way; running both at
+   * once made the recording unreliable.
+   */
+  strategy?: "auto" | "recognition" | "acoustic" | "hybrid";
   onScore?: (score: number) => void;
   onSkip?: () => void;
 };
 
-export default function AudioPlayer({ folder, fileKey, text, label, allowRecord = true, compact, onScore, onSkip }: Props) {
+export default function AudioPlayer({ folder, fileKey, text, label, allowRecord = true, compact, strategy = "auto", onScore, onSkip }: Props) {
   const src = audioPath(folder, fileKey);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
@@ -110,10 +118,15 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     const captured: number[] = [];
     let stream: MediaStream | null = null;
     let analyzer: { stop: () => void } | null = null;
-    let clip: { stop: () => void; done: Promise<Blob | null> } | null = null;
     let blob: Blob | null = null;
-    let targetMs = 3200;
-    let recogPromise: ReturnType<typeof listen> | null = null;
+    let recogResult: Awaited<ReturnType<typeof listen>> | null = null;
+    let targetMs = 4000;
+
+    // One capture per mode, so SpeechRecognition and MediaRecorder never fight
+    // over the microphone. "auto" keeps the legacy hybrid behaviour for word
+    // modules (letters are already acoustic-only) until each is migrated to
+    // "recognition"; Cognates opts in explicitly.
+    const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : "hybrid") : strategy;
 
     try {
       stream = await openMic();
@@ -123,24 +136,27 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       });
       recRef.current = analyzer;
 
-      // Match the learner's recording window to the native-speaker model so the
-      // two clips are comparable in DTW.
+      // Size the capture window to the native-speaker model.
       try {
         const ref = await loadReference(src);
-        targetMs = Math.min(6000, Math.max(1500, Math.round(ref.duration * 1000 * 1.6)));
+        targetMs = Math.min(6000, Math.max(2500, Math.round(ref.duration * 1000 * 1.6)));
       } catch { /* model unavailable — use the default window */ }
 
-      // Listen and record the *same* utterance: recognition runs alongside the
-      // MediaRecorder so the learner only speaks once.
-      if (speechSupported()) {
-        recogPromise = listen(text, Math.min(6000, Math.max(2500, targetMs)));
+      if (mode === "acoustic") {
+        const clip = recordClip(stream, targetMs);
+        blob = await clip.done;
+      } else if (mode === "recognition") {
+        recogResult = await listen(text, targetMs);
+      } else {
+        // Legacy hybrid: recognize and record the same utterance concurrently.
+        const recogPromise = speechSupported() ? listen(text, targetMs) : null;
+        const clip = recordClip(stream, targetMs);
+        blob = await clip.done;
+        recogResult = recogPromise ? await recogPromise : null;
       }
-      clip = recordClip(stream, targetMs);
-      blob = await clip.done;
     } catch {
       /* mic denied — handled below */
     } finally {
-      clip?.stop();
       analyzer?.stop();
       recRef.current = null;
       stream?.getTracks().forEach((t) => t.stop());
@@ -161,27 +177,31 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       return;
     }
 
-    const isLetter = folder === "letters";
-
-    // 1) Recognition understands *what* was said, so it is fairer than template
-    //    matching for words. It is vowel-blind, though: `normalizeArabic` strips
-    //    harakat, so it cannot tell بَ from بِ. Letters/syllables therefore skip
-    //    recognition and go straight to the acoustic path, which is sensitive to
-    //    the vowel form.
-    if (!isLetter) {
-      const res = recogPromise ? await recogPromise : null;
-      if (res && !res.error && res.transcript) {
+    // 1) Recognition understands *what* was said and is stable for whole words,
+    //    so migrated word modules use it exclusively — no acoustic fallback,
+    //    which was unreliable for full words and fought recognition for the mic.
+    if ((mode === "recognition" || mode === "hybrid") && recogResult) {
+      const res = recogResult;
+      if (!res.error && res.transcript) {
         setHeard(res.transcript);
         setScore(res.score);
-        setQuality(null);
         onScore?.(res.score);
+        return;
+      }
+      if (mode === "recognition") {
+        setScore(null);
+        setNotice({
+          title: "Let's try that again",
+          body: res.error || "We didn't catch that. Hold the device steady, speak clearly, and say it once more.",
+        });
         return;
       }
     }
 
-    // 2) Acoustic cross-check against the native-speaker model, with confusable
-    //    references as contrasts, so a wrong letter/word can actually fail.
-    if (blob && blob.size) {
+    // 2) Acoustic comparison against the native-speaker model, with confusable
+    //    references as contrasts, so a wrong vowel can actually fail. Used by
+    //    letters always, and by not-yet-migrated word modules as a fallback.
+    if ((mode === "acoustic" || mode === "hybrid") && blob && blob.size) {
       try {
         const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
         const a = await assessAgainstReference(src, blob, contrastSrcs);
@@ -203,8 +223,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       } catch { /* couldn't decode the clip/reference — fall through */ }
     }
 
-    // 3) No trustworthy signal. Stay honest: no score, no loudness guess. Graded
-    //    contexts can still advance via the explicit self-assessment (onSkip).
+    // 3) No trustworthy signal. Stay honest: no score, no loudness guess.
     setHeard("");
     setScore(null);
     setQuality(null);

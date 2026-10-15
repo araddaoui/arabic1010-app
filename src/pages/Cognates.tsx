@@ -120,7 +120,7 @@ export default function Cognates() {
               <div className="mt-2 flex justify-center"><Chip color="#7B2020">{active.category}</Chip></div>
             </div>
             <div className="mt-4">
-              <AudioPlayer folder="cognates" fileKey={active.id} text={active.ar} label={`/audio/cognates/${active.id}.mp3`} />
+              <AudioPlayer folder="cognates" fileKey={active.id} text={active.ar} strategy="recognition" label={`/audio/cognates/${active.id}.mp3`} />
             </div>
             <div className="mt-4 rounded-2xl border border-gold/25 bg-black/25 p-4">
               <div className="text-[10px] uppercase tracking-[0.25em] text-gold">Etymology trail</div>

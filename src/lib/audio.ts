@@ -105,7 +105,19 @@ export function syllableSimilarity(target: string, transcript: string) {
 
 export function transcribeScore(target: string, transcript: string) {
   const t = normalizeArabic(target);
-  return t.length <= 2 ? syllableSimilarity(target, transcript) : similarity(target, transcript);
+  const h = normalizeArabic(transcript);
+  if (!t || !h) return 0;
+  if (t.length <= 2) return syllableSimilarity(target, transcript);
+  const sim = similarity(target, transcript);
+  // Longer targets (words/phrases): recognition often catches only part of a
+  // multi-word phrase. Reward a transcript that appears inside the target,
+  // scaled by how much of the target it covers, so hearing "البحر" for
+  // "أمير البحر" is a fair partial rather than a bare 50.
+  if (h.length >= 3 && t.includes(h)) {
+    const coverage = Math.min(1, h.length / t.length);
+    return Math.max(sim, Math.round(60 + 40 * coverage));
+  }
+  return sim;
 }
 
 type RecogResult = { transcript: string; score: number; error?: string };
