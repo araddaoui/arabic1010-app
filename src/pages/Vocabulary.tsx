@@ -138,7 +138,7 @@ export default function Vocabulary() {
                 {word.writingFocus && <Chip color="#7A4A00">3-letter writing focus</Chip>}
                 <Chip>/audio/words/{word.id}.mp3</Chip>
               </div>
-              <div className="mt-4"><AudioPlayer folder="words" fileKey={word.id} text={word.ar} /></div>
+              <div className="mt-4">          <AudioPlayer folder="words" fileKey={word.id} text={word.ar} strategy="recognition" /></div>
               <div className="mt-3 flex justify-center gap-2">
                 <Button variant="ghost" onClick={() => select(Math.max(0, idx - 1))} disabled={idx === 0}>→ Prev</Button>
                 <Button variant="ghost" onClick={() => select(Math.min(VOCAB.length - 1, idx + 1))} disabled={idx === VOCAB.length - 1}>Next ←</Button>
