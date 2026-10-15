@@ -125,6 +125,29 @@ function strictShortWordScore(t: string, h: string, baseSim: number) {
   return Math.min(baseSim, strict);
 }
 
+/** Recognizer habitually confuses a word's final weak letter (ه/ى/ي ↔ ا). */
+function foldFinalWeak(s: string) {
+  if (!s) return s;
+  return s.slice(0, -1) + s.slice(-1).replace(/[هيى]/g, "ا");
+}
+
+function wordsEqual(a: string, b: string) {
+  return a === b || foldFinalWeak(a) === foldFinalWeak(b);
+}
+
+/**
+ * Per-word strictness for multi-word phrases: an exact word passes, but any
+ * consonant error fails that word. This keeps a mispronounced word worth the
+ * same in a long name as in a short one.
+ */
+function strictWordScore(t: string, h: string) {
+  if (wordsEqual(t, h)) return 100;
+  const dist = levenshtein(t, h);
+  if (dist === 1) return 62;
+  const maxLen = Math.max(t.length, h.length);
+  return Math.max(0, Math.round((1 - dist / (maxLen * 0.5)) * 100));
+}
+
 export function transcribeScore(target: string, transcript: string) {
   const t = normalizeArabic(target);
   const h = normalizeArabic(transcript);
@@ -142,6 +165,17 @@ export function transcribeScore(target: string, transcript: string) {
   // Short single word: a wrong consonant must fail, not pass as "very good".
   if (isSingleShortWord(t) && isSingleShortWord(h)) {
     return strictShortWordScore(t, h, sim);
+  }
+  // Multi-word phrase: score word-by-word so a mispronounced word counts the
+  // same in a long name as in a short one. Only when both sides segment into
+  // the same number of words — otherwise the recognizer may have merged/split
+  // words, and failing that would be a false negative, so use whole-string
+  // similarity.
+  const tWords = t.split(/\s+/).filter(Boolean);
+  const hWords = h.split(/\s+/).filter(Boolean);
+  if (tWords.length > 1 && tWords.length === hWords.length) {
+    const total = tWords.reduce((acc, tw, i) => acc + strictWordScore(tw, hWords[i]), 0);
+    return Math.round(total / tWords.length);
   }
   return sim;
 }
