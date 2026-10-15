@@ -125,10 +125,10 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     let targetMs = 4000;
 
     // One capture per mode, so SpeechRecognition and a mic stream never fight
-    // over the microphone. "auto" keeps the legacy hybrid behaviour for word
-    // modules (letters are already acoustic-only) until each is migrated to
-    // "recognition"; Cognates opts in explicitly.
-    const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : "hybrid") : strategy;
+    // over the microphone. "auto" resolves per folder: letters are acoustic-only,
+    // words (and Cognates, which opts in explicitly) are recognition-only, and
+    // everything else keeps the legacy hybrid behaviour until it is migrated.
+    const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : folder === "words" ? "recognition" : "hybrid") : strategy;
 
     try {
       // Size the capture window to the native-speaker model (no mic involved).
