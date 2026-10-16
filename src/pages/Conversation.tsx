@@ -5,7 +5,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import Quiz, { shuffle, type Question } from "@/components/Quiz";
 import { UpgradeModal } from "@/components/Layout";
 import { DIALOGUES, EXPRESSIONS } from "@/data/dialogue";
-import { play, audioPath, PASS_SCORE } from "@/lib/audio";
+import { play, audioPath, PASS_SCORE, bandMessage } from "@/lib/audio";
 import { useApp, DEV_UNLOCK_ALL } from "@/lib/store";
 import { cn } from "@/utils/cn";
 
@@ -21,6 +21,7 @@ export default function Conversation() {
   const [quizOpen, setQuizOpen] = useState(false);
   const [rpIdx, setRpIdx] = useState(0);
   const [rpLog, setRpLog] = useState<{ who: string; text: string; score?: number }[]>([]);
+  const [result, setResult] = useState<{ id: string; score: number; heard: string; pass: boolean } | null>(null);
 
   const dlg = DIALOGUES[stage];
   const all = DIALOGUES.flatMap((d) => d.lines);
@@ -82,13 +83,13 @@ export default function Conversation() {
 
       <div className="flex flex-wrap items-center gap-2">
         {DIALOGUES.map((d, i) => (
-          <button key={d.id} onClick={() => { setStage(i); setLineIdx(0); setRpIdx(0); setRpLog([]); }}
+          <button key={d.id} onClick={() => { setStage(i); setLineIdx(0); setRpIdx(0); setRpLog([]); setResult(null); }}
             className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold",
               stage === i ? "border-gold bg-gold/20 text-gold" : "border-white/12 text-sand/60")}>{d.title}</button>
         ))}
         <div className="ml-auto flex gap-2">
           {([1, 2, 3] as Phase[]).map((p) => (
-            <button key={p} onClick={() => setPhase(p)}
+            <button key={p} onClick={() => { setPhase(p); setResult(null); }}
               className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold",
                 phase === p ? "border-gold bg-gold/20 text-gold" : "border-white/12 text-sand/60")}>
               Phase {p} · {p === 1 ? "Listen" : p === 2 ? "Practise" : "Role-play"}
@@ -177,21 +178,47 @@ export default function Conversation() {
                 <div className="mt-1 text-sm text-sand/60">{line.en}</div>
               </div>
               <div className="mt-3">
-                <AudioPlayer folder="dialogue" fileKey={line.id} text={line.ar}
-                  onScore={(s) => {
+                <AudioPlayer folder="dialogue" fileKey={line.id} text={line.ar} hideInlineScore
+                  onScore={(s, heard) => {
                     recordPractice("dialogue", line.id, s);
-                    if (s >= PASS_SCORE) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); }
+                    if (s >= PASS_SCORE) award("dialogue", line.id, 25);
+                    setResult({ id: line.id, score: s, heard: heard ?? "", pass: s >= PASS_SCORE });
                   }}
-                  onSkip={() => setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1))} />
+                  onSkip={() => { setResult(null); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); }} />
               </div>
+
+              {result && result.id === line.id && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  className={cn("mt-3 flex flex-wrap items-center gap-4 rounded-2xl border p-4",
+                    result.pass ? "border-ok/40 bg-ok/10" : result.score >= 50 ? "border-gold/40 bg-gold/10" : "border-maroon/50 bg-maroon/15")}>
+                  <div className={cn("text-4xl font-extrabold leading-none", result.pass ? "text-ok" : result.score >= 50 ? "text-gold" : "text-err")}>
+                    {result.pass ? "✓" : "✕"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-lg font-bold">
+                      {result.pass ? "Passed" : "Not quite"} · <span className={result.pass ? "text-ok" : "text-gold"}>{result.score}%</span>
+                      <span className="ml-2 text-xs font-normal text-sand/40">{line.name} · line {lineIdx + 1}</span>
+                    </div>
+                    <div className="text-sm text-sand/70">{bandMessage(result.score)}</div>
+                    {result.heard && <div className="mt-0.5 text-xs text-sand/50">Heard: <span className="ar" dir="rtl">{result.heard}</span></div>}
+                  </div>
+                  {result.pass ? (
+                    <Button onClick={() => { setResult(null); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); }}
+                      disabled={lineIdx >= dlg.lines.length - 1}>Next line →</Button>
+                  ) : (
+                    <Button variant="outline" onClick={() => setResult(null)}>Try again</Button>
+                  )}
+                </motion.div>
+              )}
+
               <div className="mt-3 flex items-center justify-between">
-                <Button variant="ghost" onClick={() => setLineIdx((i) => Math.max(0, i - 1))} disabled={lineIdx === 0}>→ Previous line</Button>
+                <Button variant="ghost" onClick={() => { setResult(null); setLineIdx((i) => Math.max(0, i - 1)); }} disabled={lineIdx === 0}>→ Previous line</Button>
                 <span className="text-xs text-sand/40">{lineIdx + 1} / {dlg.lines.length}</span>
-                <Button variant="ghost" onClick={() => setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1))} disabled={lineIdx >= dlg.lines.length - 1}>Next line ←</Button>
+                <Button variant="ghost" onClick={() => { setResult(null); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); }} disabled={lineIdx >= dlg.lines.length - 1}>Next line ←</Button>
               </div>
               <div className="mt-3 rounded-xl bg-black/25 p-3 text-xs text-sand/60">
-                🔤 <span className="text-sand/80">{line.translit}</span>
-                {/[عح]/.test(line.ar) && <span className="text-gold/70"> · ع: deep in the throat (pharyngeal); ح: warm breath</span>}
+                💡 <span className="text-sand/40">Tip:</span> <span className="text-sand/80">{line.translit}</span>
+                {result && !result.pass && /[عح]/.test(line.ar) && <span className="text-gold/70"> · ع: deep in the throat (pharyngeal); ح: warm breath</span>}
               </div>
             </>
           )}

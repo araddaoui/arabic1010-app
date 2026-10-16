@@ -77,11 +77,13 @@ type Props = {
    * once made the recording unreliable.
    */
   strategy?: "auto" | "recognition" | "acoustic" | "hybrid";
-  onScore?: (score: number) => void;
+  onScore?: (score: number, heard?: string) => void;
   onSkip?: () => void;
+  /** Hide the small inline score row when the caller renders its own result banner. */
+  hideInlineScore?: boolean;
 };
 
-export default function AudioPlayer({ folder, fileKey, text, label, allowRecord = true, compact, strategy = "auto", onScore, onSkip }: Props) {
+export default function AudioPlayer({ folder, fileKey, text, label, allowRecord = true, compact, strategy = "auto", onScore, onSkip, hideInlineScore }: Props) {
   const src = audioPath(folder, fileKey);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
@@ -235,7 +237,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       if (!res.error && res.transcript) {
         setHeard(res.transcript);
         setScore(res.score);
-        onScore?.(res.score);
+        onScore?.(res.score, res.transcript);
         return;
       }
       if (mode === "recognition") {
@@ -368,7 +370,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         </motion.div>
       )}
 
-      {score !== null && (
+      {score !== null && !hideInlineScore && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-black/25 p-3">
           <div className="relative h-11 w-11 shrink-0">
             <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
