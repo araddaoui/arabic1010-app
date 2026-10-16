@@ -317,6 +317,7 @@ export type AssessmentMetrics = {
   qualityTarget?: string;
   userMs?: number;
   shortMs?: number;
+  longMs?: number;
   lengthOk?: boolean;
   consonantOk?: boolean;
 };
@@ -567,8 +568,15 @@ const LETTER_VOWELS: Record<LetterVowel, { quality: VowelQuality; length: "short
   long_waw: { quality: "u", length: "long", shortOf: "dhamma" },
 };
 
-/** A long vowel passes once it is this much longer than the letter's short form. */
-const LETTER_LEN_K = 1.5;
+/** A long vowel passes once it is at least this much longer than the short form. */
+const LONG_MIN_K = 1.5;
+/**
+ * A short vowel only fails once it is this much longer than the short form.
+ * Deliberately generous: speakers draw short vowels out well past the reference
+ * recording's own speed, so a tight upper bound produced false negatives. The
+ * short/long contrast is still caught for grossly elongated takes.
+ */
+const SHORT_MAX_K = 3.0;
 /** Required margin before another consonant counts as a better match. */
 const LETTER_CONSONANT_MARGIN = 0.01;
 // Gate outcomes map onto the shared bands: pass comfortably clears PASS_SCORE,
@@ -725,7 +733,10 @@ export async function assessLetter(
     ? target
     : refFeats.find((f) => f.glyph === target.glyph && f.vowel === LETTER_VOWELS[target.vowel].shortOf);
   const shortMs = shortForm?.durMs ?? target.durMs;
-  const lengthThreshold = shortMs * LETTER_LEN_K;
+  const QUALITY_LONG: Record<VowelQuality, LetterVowel> = { a: "long_alif", i: "long_ya", u: "long_waw" };
+  const longForm = refFeats.find((f) => f.glyph === target.glyph && f.vowel === QUALITY_LONG[target.quality]);
+  const longMs = longForm?.durMs ?? 0;
+  const lengthThreshold = shortMs * (target.length === "long" ? LONG_MIN_K : SHORT_MAX_K);
   const lengthOk = target.length === "long" ? userFeat.durMs >= lengthThreshold : userFeat.durMs < lengthThreshold;
 
   // Gate 2 — consonant: the onset must match the target consonant better than any
@@ -746,13 +757,13 @@ export async function assessLetter(
     dMean: targetEff, dWorst: targetEff, dEff: targetEff, contrast: contrastEffs.length ? Math.min(...contrastEffs) : null,
     margin: contrastEffs.length ? Math.min(...contrastEffs) - targetEff : null, targetZ: null,
     durationRatio: target.durMs ? userFeat.durMs / target.durMs : 0, score, snrDb: quality.snrDb, clipping: quality.clipping,
-    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, lengthOk, consonantOk,
+    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, longMs, lengthOk, consonantOk,
   };
 
   if (import.meta.env.DEV || assessDebugEnabled()) {
     console.debug(
       `[letter] target=${targetKey} heardQuality=${qualityHeard} targetQuality=${target.quality} ` +
-      `user=${Math.round(userFeat.durMs)}ms short=${Math.round(shortMs)}ms threshold=${Math.round(lengthThreshold)}ms ` +
+      `user=${Math.round(userFeat.durMs)}ms short=${Math.round(shortMs)}ms long=${Math.round(longMs)}ms threshold=${Math.round(lengthThreshold)}ms ` +
       `lengthOk=${lengthOk} consonantOk=${consonantOk} qualityMatch=${qualityMatch} ` +
       `targetEff=${targetEff.toFixed(3)} base=${Math.round(base)} gates=${gatesPass} score=${score}`,
     );
