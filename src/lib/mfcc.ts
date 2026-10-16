@@ -73,8 +73,10 @@ export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.00
   const floor = percentile(sorted, 0.15);
   const peak = percentile(sorted, 0.95);
   // Cap below the peak so a signal with little dynamic range (all voiced, no
-  // clear noise floor) isn't trimmed away entirely.
-  const threshold = Math.min(Math.max(floor * 2.5, peak * 0.06, absFloor), peak * 0.5);
+  // clear noise floor) isn't trimmed away entirely. The peak-relative term is
+  // kept generous (12%) so low-level room tone and trailing echo after the
+  // utterance fall below threshold instead of padding the clip.
+  const threshold = Math.min(Math.max(floor * 3, peak * 0.12, absFloor), peak * 0.5);
   const hop = Math.round((rate * 10) / 1000);
   const frame = Math.round((rate * 20) / 1000);
   let first = -1;
@@ -86,9 +88,9 @@ export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.00
     }
   }
   if (first < 0) return new Float32Array(0);
-  const pad = Math.round(rate * 0.03);
+  const pad = Math.round(rate * 0.02);
   const start = Math.max(0, first * hop - pad);
-  const end = Math.min(samples.length - 1, last * hop + frame + pad);
+  const end = Math.min(samples.length - 1, last * hop + Math.round(frame / 2) + pad);
   return samples.slice(start, end + 1);
 }
 

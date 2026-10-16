@@ -320,6 +320,8 @@ export type AssessmentMetrics = {
   longMs?: number;
   lengthOk?: boolean;
   consonantOk?: boolean;
+  /** Best same-vowel confusable distance minus target distance (higher = safer). */
+  conMargin?: number;
 };
 
 export type Assessment = {
@@ -571,14 +573,12 @@ const LETTER_VOWELS: Record<LetterVowel, { quality: VowelQuality; length: "short
 /** A long vowel passes once it is at least this much longer than the short form. */
 const LONG_MIN_K = 1.5;
 /**
- * A short vowel only fails once it is this much longer than the short form.
- * Deliberately generous: speakers draw short vowels out well past the reference
- * recording's own speed, so a tight upper bound produced false negatives. The
- * short/long contrast is still caught for grossly elongated takes.
+ * Required margin before another consonant counts as a better match. Near
+ * homophones (ه/ح, ج/ح) sit within the DTW noise band, so a tight margin flipped
+ * correct takes; 0.05 keeps clearly-wrong consonants failing without false
+ * negatives.
  */
-const SHORT_MAX_K = 3.0;
-/** Required margin before another consonant counts as a better match. */
-const LETTER_CONSONANT_MARGIN = 0.01;
+const LETTER_CONSONANT_MARGIN = 0.05;
 // Gate outcomes map onto the shared bands: pass comfortably clears PASS_SCORE,
 // a wrong vowel/consonant lands in the "close — try again" band.
 const LETTER_PASS_FLOOR = 82;
@@ -728,7 +728,9 @@ export async function assessLetter(
   const qualityMatch = qualityHeard === target.quality;
 
   // Gate 1b — vowel length: a long vowel must be clearly longer than the short
-  // form of the same quality; a short vowel must not drift into long territory.
+  // form of the same quality. A short vowel is never failed on length: speakers
+  // draw short vowels out well past the reference's speed (often past the
+  // reference *long* form), so an upper bound only produced false negatives.
   const shortForm = target.length === "short"
     ? target
     : refFeats.find((f) => f.glyph === target.glyph && f.vowel === LETTER_VOWELS[target.vowel].shortOf);
@@ -736,16 +738,20 @@ export async function assessLetter(
   const QUALITY_LONG: Record<VowelQuality, LetterVowel> = { a: "long_alif", i: "long_ya", u: "long_waw" };
   const longForm = refFeats.find((f) => f.glyph === target.glyph && f.vowel === QUALITY_LONG[target.quality]);
   const longMs = longForm?.durMs ?? 0;
-  const lengthThreshold = shortMs * (target.length === "long" ? LONG_MIN_K : SHORT_MAX_K);
-  const lengthOk = target.length === "long" ? userFeat.durMs >= lengthThreshold : userFeat.durMs < lengthThreshold;
+  const lengthThreshold = shortMs * LONG_MIN_K;
+  const lengthOk = target.length === "long" ? userFeat.durMs >= lengthThreshold : true;
 
   // Gate 2 — consonant: the onset must match the target consonant better than any
-  // confusable consonant carrying the same vowel.
+  // confusable consonant carrying the same vowel (by at least LETTER_CONSONANT_MARGIN).
   let consonantOk = true;
+  let conMargin = Infinity;
   for (const f of refFeats) {
     if (f.vowel !== target.vowel || f.glyph === target.glyph) continue;
     const de = eff(f);
-    if (isFinite(de) && de < targetEff - LETTER_CONSONANT_MARGIN) { consonantOk = false; break; }
+    if (isFinite(de)) {
+      conMargin = Math.min(conMargin, de - targetEff);
+      if (de < targetEff - LETTER_CONSONANT_MARGIN) consonantOk = false;
+    }
   }
 
   const gatesPass = qualityMatch && lengthOk && consonantOk;
@@ -757,14 +763,14 @@ export async function assessLetter(
     dMean: targetEff, dWorst: targetEff, dEff: targetEff, contrast: contrastEffs.length ? Math.min(...contrastEffs) : null,
     margin: contrastEffs.length ? Math.min(...contrastEffs) - targetEff : null, targetZ: null,
     durationRatio: target.durMs ? userFeat.durMs / target.durMs : 0, score, snrDb: quality.snrDb, clipping: quality.clipping,
-    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, longMs, lengthOk, consonantOk,
+    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, longMs, lengthOk, consonantOk, conMargin,
   };
 
   if (import.meta.env.DEV || assessDebugEnabled()) {
     console.debug(
       `[letter] target=${targetKey} heardQuality=${qualityHeard} targetQuality=${target.quality} ` +
       `user=${Math.round(userFeat.durMs)}ms short=${Math.round(shortMs)}ms long=${Math.round(longMs)}ms threshold=${Math.round(lengthThreshold)}ms ` +
-      `lengthOk=${lengthOk} consonantOk=${consonantOk} qualityMatch=${qualityMatch} ` +
+      `lengthOk=${lengthOk} consonantOk=${consonantOk} conMargin=${isFinite(conMargin) ? conMargin.toFixed(3) : "—"} qualityMatch=${qualityMatch} ` +
       `targetEff=${targetEff.toFixed(3)} base=${Math.round(base)} gates=${gatesPass} score=${score}`,
     );
   }

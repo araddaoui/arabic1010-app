@@ -401,7 +401,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           dir="ltr"
           className="mt-2 overflow-x-auto rounded-lg border border-gold/40 bg-black/40 p-2 text-[11px] leading-snug text-gold/90"
         >
-{`gates: quality=${metrics.qualityHeard} (want ${metrics.qualityTarget})${metrics.qualityHeard === metrics.qualityTarget ? " ✓" : " ✗"}  length=${metrics.lengthOk ? "✓" : "✗"}  consonant=${metrics.consonantOk ? "✓" : "✗"}
+{`gates: quality=${metrics.qualityHeard} (want ${metrics.qualityTarget})${metrics.qualityHeard === metrics.qualityTarget ? " ✓" : " ✗"}  length=${metrics.lengthOk ? "✓" : "✗"}  consonant=${metrics.consonantOk ? "✓" : "✗"}  conMargin=${metrics.conMargin === undefined || !isFinite(metrics.conMargin) ? "—" : metrics.conMargin.toFixed(3)}
 dur: user=${Math.round(metrics.userMs ?? 0)}ms  short=${Math.round(metrics.shortMs ?? 0)}ms  long=${Math.round(metrics.longMs ?? 0)}ms`}
         </pre>
       )}
