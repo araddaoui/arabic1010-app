@@ -590,10 +590,12 @@ const ONSET_WINDOW_MAX = 15;
 const ONSET_WINDOW_MIN = 3;
 /**
  * Required margin before another consonant counts as a better match. Applied to
- * the onset-windowed distance; kept tight because the narrower window makes the
- * target's consonant stand out.
+ * the onset-windowed distance. Onset DTW is noisy (especially for stops, whose
+ * brief burst is buried under the vowel), so a tight margin flipped correct
+ * takes; correct consonants sit well above this and clear wrong ones (e.g. ن vs
+ * ث at ≈-0.26) below it.
  */
-const LETTER_CONSONANT_MARGIN = 0.02;
+const LETTER_CONSONANT_MARGIN = 0.1;
 // Gate outcomes map onto the shared bands: pass comfortably clears PASS_SCORE,
 // a wrong vowel/consonant lands in the "close — try again" band.
 const LETTER_PASS_FLOOR = 82;
