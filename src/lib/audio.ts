@@ -322,8 +322,6 @@ export type AssessmentMetrics = {
   consonantOk?: boolean;
   /** Best same-vowel confusable distance minus target distance (higher = safer). */
   conMargin?: number;
-  /** Duration above which a short target counts as "long" (Infinity = no ceiling). */
-  shortCeil?: number;
 };
 
 export type Assessment = {
@@ -575,12 +573,6 @@ const LETTER_VOWELS: Record<LetterVowel, { quality: VowelQuality; length: "short
 /** A long vowel passes once it is at least this much longer than the short form. */
 const LONG_MIN_K = 1.5;
 /**
- * A short vowel is only failed if it is held for a large fraction of the
- * reference *long* form — i.e. it has clearly drifted into long territory. Kept
- * below 1 so a short is rejected before it actually reaches the long duration.
- */
-const SHORT_CEIL_K = 0.8;
-/**
  * Consonant comparison window: the first frames of the syllable, where the
  * consonant lives. Whole-syllable DTW let a matching vowel swamp a short wrong
  * onset (e.g. ن vs ث differ only in the onset), so we restrict the comparison.
@@ -754,8 +746,9 @@ export async function assessLetter(
   const qualityMatch = qualityHeard === target.quality;
 
   // Gate 1b — vowel length: a long vowel must be clearly longer than the short
-  // form of the same quality. A short vowel fails only if it is held for a large
-  // fraction of the reference *long* form (drifted into long territory).
+  // form of the same quality. A short vowel is never failed on length: speakers
+  // vary so much (and draw short vowels out past the reference long form) that
+  // any upper bound only produced false negatives.
   const shortForm = target.length === "short"
     ? target
     : refFeats.find((f) => f.glyph === target.glyph && f.vowel === LETTER_VOWELS[target.vowel].shortOf);
@@ -764,8 +757,7 @@ export async function assessLetter(
   const longForm = refFeats.find((f) => f.glyph === target.glyph && f.vowel === QUALITY_LONG[target.quality]);
   const longMs = longForm?.durMs ?? 0;
   const lengthThreshold = shortMs * LONG_MIN_K;
-  const shortCeiling = longMs > 0 ? longMs * SHORT_CEIL_K : Infinity;
-  const lengthOk = target.length === "long" ? userFeat.durMs >= lengthThreshold : userFeat.durMs < shortCeiling;
+  const lengthOk = target.length === "long" ? userFeat.durMs >= lengthThreshold : true;
 
   // Gate 2 — consonant: the onset must match the target consonant better than any
   // confusable consonant carrying the same vowel (by at least LETTER_CONSONANT_MARGIN).
@@ -789,7 +781,7 @@ export async function assessLetter(
     dMean: targetEff, dWorst: targetEff, dEff: targetEff, contrast: contrastEffs.length ? Math.min(...contrastEffs) : null,
     margin: contrastEffs.length ? Math.min(...contrastEffs) - targetEff : null, targetZ: null,
     durationRatio: target.durMs ? userFeat.durMs / target.durMs : 0, score, snrDb: quality.snrDb, clipping: quality.clipping,
-    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, longMs, shortCeil: shortCeiling, lengthOk, consonantOk, conMargin,
+    qualityHeard, qualityTarget: target.quality, userMs: userFeat.durMs, shortMs, longMs, lengthOk, consonantOk, conMargin,
   };
 
   if (import.meta.env.DEV || assessDebugEnabled()) {
