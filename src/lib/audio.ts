@@ -69,6 +69,25 @@ export function normalizeArabic(s: string) {
     .trim();
 }
 
+/**
+ * Words the recognizer habitually normalises to their MSA equivalent. The
+ * dialogue uses Levantine forms (شو = ما, وين = أين); if Chrome returns the MSA
+ * word the learner actually meant, that is not a pronunciation error. Map both
+ * sides onto one canonical token so the word still counts as a match. Applied to
+ * already-`normalizeArabic`d text (so أين has become اين).
+ */
+const DIALECT_VARIANTS: Record<string, string> = {
+  "شو": "ما",
+  "وين": "اين",
+};
+
+function canonicalizeVariants(s: string) {
+  return s
+    .split(/\s+/)
+    .map((w) => DIALECT_VARIANTS[w] ?? w)
+    .join(" ");
+}
+
 function levenshtein(a: string, b: string) {
   const m = a.length, n = b.length;
   const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
@@ -79,11 +98,14 @@ function levenshtein(a: string, b: string) {
   return d[m][n];
 }
 
-export function similarity(a: string, b: string) {
-  const x = normalizeArabic(a), y = normalizeArabic(b);
+function levSim(x: string, y: string) {
   if (!x || !y) return 0;
   const dist = levenshtein(x, y);
   return Math.max(0, Math.round((1 - dist / Math.max(x.length, y.length)) * 100));
+}
+
+export function similarity(a: string, b: string) {
+  return levSim(normalizeArabic(a), normalizeArabic(b));
 }
 
 /**
@@ -149,11 +171,11 @@ function strictWordScore(t: string, h: string) {
 }
 
 export function transcribeScore(target: string, transcript: string) {
-  const t = normalizeArabic(target);
-  const h = normalizeArabic(transcript);
+  const t = canonicalizeVariants(normalizeArabic(target));
+  const h = canonicalizeVariants(normalizeArabic(transcript));
   if (!t || !h) return 0;
   if (t.length <= 2) return syllableSimilarity(target, transcript);
-  const sim = similarity(target, transcript);
+  const sim = levSim(t, h);
   // Longer targets (words/phrases): recognition often catches only part of a
   // multi-word phrase. Reward a transcript that appears inside the target,
   // scaled by how much of the target it covers, so hearing "البحر" for

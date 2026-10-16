@@ -12,7 +12,7 @@ import { cn } from "@/utils/cn";
 type Phase = 1 | 2 | 3;
 
 export default function Conversation() {
-  const { isLocked, award, isLearned, learnedCount, setMastered, addXp, user } = useApp();
+  const { isLocked, award, isLearned, learnedCount, setMastered, addXp, recordPractice, user } = useApp();
   const [stage, setStage] = useState(0);
   const [phase, setPhase] = useState<Phase>(1);
   const [lineIdx, setLineIdx] = useState(0);
@@ -26,6 +26,17 @@ export default function Conversation() {
   const all = DIALOGUES.flatMap((d) => d.lines);
   const globalIndex = (id: string) => all.findIndex((l) => l.id === id);
   const learned = learnedCount("dialogue");
+
+  const progOf = (id: string) => user?.progress[`dialogue:${id}`];
+  const statusOf = (id: string): "passed" | "practiced" | "new" => {
+    const p = progOf(id);
+    if (!p) return "new";
+    return p.masteryPct >= 60 ? "passed" : "practiced";
+  };
+  const practiced = all.filter((l) => (progOf(l.id)?.attempts ?? 0) > 0).length;
+  const passed = all.filter((l) => (progOf(l.id)?.masteryPct ?? 0) >= 60).length;
+  const bestVals = all.map((l) => progOf(l.id)?.best).filter((b): b is number => typeof b === "number");
+  const avgBest = bestVals.length ? Math.round(bestVals.reduce((a, b) => a + b, 0) / bestVals.length) : 0;
 
   const line = dlg.lines[Math.min(lineIdx, dlg.lines.length - 1)];
   const lineLocked = isLocked("dialogue", globalIndex(line.id));
@@ -106,6 +117,7 @@ export default function Conversation() {
           <div className="space-y-2">
             {dlg.lines.map((l, i) => {
               const lock = isLocked("dialogue", globalIndex(l.id));
+              const st = statusOf(l.id);
               return (
                 <motion.div key={l.id} layout
                   className={cn("rounded-2xl border p-3 transition",
@@ -117,6 +129,10 @@ export default function Conversation() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-[11px] text-sand/50">
                         {l.name} · {l.id}.mp3
+                        <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                          st === "passed" ? "bg-ok/20 text-emerald-300" : st === "practiced" ? "bg-gold/20 text-gold" : "bg-white/10 text-sand/40")}>
+                          {st === "passed" ? "✓ passed" : st === "practiced" ? "● practiced" : "○ new"}
+                        </span>
                         {l.note && <Chip>note</Chip>}
                       </div>
                       <div className="ar mt-1 text-2xl">{l.ar}</div>
@@ -143,6 +159,11 @@ export default function Conversation() {
         <Card>
           <h3 className="font-bold">Line-by-line practice</h3>
           <p className="text-xs text-sand/50">Record each line — a good match ({PASS_SCORE}% similarity) advances you.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-sand/50">
+            <span>practiced <b className="text-sand/80">{practiced}/{all.length}</b></span>
+            <span>passed <b className="text-emerald-300">{passed}</b></span>
+            <span>avg best <b className="text-sand/80">{avgBest}%</b></span>
+          </div>
           {lineLocked ? (
             <div className="mt-4 text-center">
               <LockIcon className="mx-auto h-7 w-7 text-gold" />
@@ -157,7 +178,10 @@ export default function Conversation() {
               </div>
               <div className="mt-3">
                 <AudioPlayer folder="dialogue" fileKey={line.id} text={line.ar}
-                  onScore={(s) => { if (s >= PASS_SCORE) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); } }}
+                  onScore={(s) => {
+                    recordPractice("dialogue", line.id, s);
+                    if (s >= PASS_SCORE) { award("dialogue", line.id, 25); setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1)); }
+                  }}
                   onSkip={() => setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1))} />
               </div>
               <div className="mt-3 flex items-center justify-between">
@@ -166,7 +190,8 @@ export default function Conversation() {
                 <Button variant="ghost" onClick={() => setLineIdx((i) => Math.min(dlg.lines.length - 1, i + 1))} disabled={lineIdx >= dlg.lines.length - 1}>Next line ←</Button>
               </div>
               <div className="mt-3 rounded-xl bg-black/25 p-3 text-xs text-sand/60">
-                💡 Hint system: for ع, press the back of the throat (pharyngeal constriction); for ح, use a warm voiceless breath.
+                🔤 <span className="text-sand/80">{line.translit}</span>
+                {/[عح]/.test(line.ar) && <span className="text-gold/70"> · ع: deep in the throat (pharyngeal); ح: warm breath</span>}
               </div>
             </>
           )}
@@ -208,6 +233,7 @@ export default function Conversation() {
                 <div className="mb-2 text-sm text-gold">Your turn — say: <span className="ar text-xl">{rpLine.ar}</span></div>
                 <AudioPlayer folder="dialogue" fileKey={rpLine.id} text={rpLine.ar}
                   onScore={(s) => {
+                    recordPractice("dialogue", rpLine.id, s);
                     setRpLog((l) => [...l, { who: "you", text: rpLine.ar, score: s }]);
                      if (s >= PASS_SCORE) { setRpIdx((i) => i + 1); award("dialogue", rpLine.id, 25); }
                    }}

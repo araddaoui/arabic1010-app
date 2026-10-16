@@ -137,10 +137,11 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     let targetMs = 4000;
 
     // One capture per mode, so SpeechRecognition and a mic stream never fight
-    // over the microphone. "auto" resolves per folder: letters are acoustic-only,
-    // words (and Cognates, which opts in explicitly) are recognition-only, and
-    // everything else keeps the legacy hybrid behaviour until it is migrated.
-    const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : folder === "words" ? "recognition" : "hybrid") : strategy;
+    // over the microphone. "auto" resolves per folder: letters are acoustic-only;
+    // words, dialogue and Cognates (which opts in explicitly) are recognition-only
+    // — whole utterances understood as a phrase; everything else keeps the legacy
+    // hybrid behaviour until it is migrated.
+    const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : folder === "words" || folder === "dialogue" ? "recognition" : "hybrid") : strategy;
 
     try {
       // Size the capture window to the native-speaker model (no mic involved).
@@ -326,7 +327,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
             <Waveform bars={levels} color={score !== null && score >= PASS_SCORE ? "#1D9E75" : "#8f7fd8"} height={compact ? 30 : 44} />
           ) : (
             <div className="flex items-center text-xs text-sand/30" style={{ height: compact ? 30 : 44 }}>
-              Tap record and say the word aloud
+              {folder === "dialogue" ? "Tap record and say the line aloud" : "Tap record and say the word aloud"}
             </div>
           )}
         </div>

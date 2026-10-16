@@ -24,6 +24,7 @@ export type ProgressItem = {
   masteryPct: number;
   attempts: number;
   correct: number;
+  best?: number; // best similarity score seen (0-100), for practice feedback
   lastReviewed: string;
   interval: number; // days
   due: string;
@@ -167,6 +168,7 @@ type Ctx = {
   signOut: () => void;
   award: (module: ModuleKey, itemKey: string, xp?: number) => void;
   recordAttempt: (module: ModuleKey, itemKey: string, correct: boolean) => void;
+  recordPractice: (module: ModuleKey, itemKey: string, score: number) => void;
   addXp: (n: number) => void;
   setMastered: (id: string) => void;
   isLocked: (module: ModuleKey, index: number, id?: string) => boolean;
@@ -401,6 +403,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const recordPractice: Ctx["recordPractice"] = (module, itemKey, score) => {
+    patchUser((u) => {
+      const k = `${module}:${itemKey}`;
+      const p = u.progress[k] ?? { module, itemKey, masteryPct: 0, attempts: 0, correct: 0, lastReviewed: today(), interval: 1, due: today() };
+      return {
+        ...u,
+        progress: {
+          ...u.progress,
+          [k]: { ...p, attempts: p.attempts + 1, best: Math.max(p.best ?? 0, Math.round(score)), lastReviewed: today() },
+        },
+      };
+    });
+  };
+
   const addXp = (n: number) => patchUser((u) => checkBadges({ ...u, xp: u.xp + n }));
   const setMastered = (id: string) =>
     patchUser((u) => checkBadges({ ...u, mastered: u.mastered.includes(id) ? u.mastered : [...u.mastered, id] }));
@@ -451,7 +467,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value: Ctx = {
     db, user, settings, setSettings, signIn, signUp, signInGoogle, signOut,
-    award, recordAttempt, addXp, setMastered, isLocked, learnedCount, isLearned,
+    award, recordAttempt, recordPractice, addXp, setMastered, isLocked, learnedCount, isLearned,
     dueItems, upgrade, addFeedback, replyFeedback,
     newBadge, clearBadge: () => setNewBadge(null), toast, showToast,
   };
