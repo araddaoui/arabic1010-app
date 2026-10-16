@@ -396,6 +396,16 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         </motion.div>
       )}
 
+      {metrics?.qualityTarget && (
+        <pre
+          dir="ltr"
+          className="mt-2 overflow-x-auto rounded-lg border border-gold/40 bg-black/40 p-2 text-[11px] leading-snug text-gold/90"
+        >
+{`gates: quality=${metrics.qualityHeard} (want ${metrics.qualityTarget})${metrics.qualityHeard === metrics.qualityTarget ? " ✓" : " ✗"}  length=${metrics.lengthOk ? "✓" : "✗"}  consonant=${metrics.consonantOk ? "✓" : "✗"}
+dur: user=${Math.round(metrics.userMs ?? 0)}ms  short=${Math.round(metrics.shortMs ?? 0)}ms  (long needs ≥1.5× short)`}
+        </pre>
+      )}
+
       {assessDebugEnabled() && metrics && (
         <pre
           dir="ltr"
@@ -403,9 +413,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         >
 {`dMean=${metrics.dMean.toFixed(3)}  dWorst=${metrics.dWorst.toFixed(3)}  dEff=${metrics.dEff.toFixed(3)}
 contrast=${metrics.contrast === null ? "—" : metrics.contrast.toFixed(3)}  margin=${metrics.margin === null ? "—" : metrics.margin.toFixed(3)}  z=${metrics.targetZ === null ? "—" : metrics.targetZ.toFixed(2)}  score=${metrics.score}
-ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%${metrics.qualityTarget ? `
-gates: quality=${metrics.qualityHeard} (want ${metrics.qualityTarget})${metrics.qualityHeard === metrics.qualityTarget ? " ✓" : " ✗"}  length=${metrics.lengthOk ? "✓" : "✗"}  consonant=${metrics.consonantOk ? "✓" : "✗"}
-dur: user=${Math.round(metrics.userMs ?? 0)}ms  short=${Math.round(metrics.shortMs ?? 0)}ms` : ""}`}
+ratio=${metrics.durationRatio.toFixed(2)}  snr=${metrics.snrDb.toFixed(1)}dB  clip=${(metrics.clipping * 100).toFixed(1)}%`}
         </pre>
       )}
 
