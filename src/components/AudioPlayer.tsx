@@ -274,7 +274,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
             title: "Let's try that again",
             body:
               `${a.qualityLabel ?? "We couldn't hear that clearly"}. Move to a quieter spot, hold the device closer to your mouth, and record again.` +
-              (a.unscorableReason ? ` [${a.unscorableReason}]` : ""),
+              (assessDebugEnabled() && a.unscorableReason ? ` [${a.unscorableReason}]` : ""),
           });
           return;
         }
@@ -399,7 +399,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
         </motion.div>
       )}
 
-      {metrics?.qualityTarget && (
+      {assessDebugEnabled() && metrics?.qualityTarget && (
         <pre
           dir="ltr"
           className="mt-2 overflow-x-auto rounded-lg border border-gold/40 bg-black/40 p-2 text-[11px] leading-snug text-gold/90"
