@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/store";
-import { isProductionMode } from "@/lib/config";
+import { isSupabaseAuthEnabled } from "@/lib/config";
 
 export default function Auth() {
   const { signIn, signUp } = useApp();
@@ -75,7 +75,7 @@ export default function Auth() {
             <span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" />
           </div>
 
-          {!isProductionMode && <>
+          {!isSupabaseAuthEnabled && <>
             {/* Demo mode — clearly labelled, no pretence of real Google OAuth */}
             <Button
               variant="ghost"
@@ -126,7 +126,7 @@ export default function Auth() {
           </>}
 
           <p className="mt-4 text-center text-[10px] text-sand/30">
-            {isProductionMode ? "Arabic1010 · secure account authentication enabled" : "Arabic1010 · progress saved locally · no data sent to any server in this release"}
+            {isSupabaseAuthEnabled ? "Arabic1010 · secure account authentication enabled" : "Arabic1010 · progress saved locally · no data sent to any server in this release"}
           </p>
         </div>
       </motion.div>

@@ -18,6 +18,15 @@ interface ImportMetaEnv {
   readonly VITE_APP_URL?: string;
   readonly VITE_AUDIO_CDN?: string;
   readonly VITE_DEV_UNLOCK_ALL?: string;
+  readonly VITE_APP_ENV?: string;
+  readonly VITE_ENABLE_PRODUCTION_SERVICES?: string;
+  readonly VITE_SUPABASE_URL?: string;
+  readonly VITE_SUPABASE_ANON_KEY?: string;
+  readonly VITE_SUPABASE_KEY?: string;
+  readonly VITE_NEXT_PUBLIC_SUPABASE_URL?: string;
+  readonly VITE_NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
+  readonly VITE_CHECKOUT_FUNCTION_URL?: string;
+  readonly VITE_REVIEWER_EMAILS?: string;
 }
 
 interface ImportMeta {

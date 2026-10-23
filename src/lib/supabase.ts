@@ -1,16 +1,59 @@
 import { appConfig } from "@/lib/config";
 
+type SupabaseMetadata = {
+  role?: string;
+  reviewer?: boolean;
+  full_access?: boolean;
+  display_name?: string;
+};
+
 export type SupabaseSession = {
   access_token?: string;
   refresh_token?: string;
   expires_in?: number;
   token_type?: string;
-  user?: { id?: string; email?: string; user_metadata?: { display_name?: string } };
+  user?: {
+    id?: string;
+    email?: string;
+    email_confirmed_at?: string | null;
+    role?: string;
+    app_metadata?: SupabaseMetadata;
+    user_metadata?: SupabaseMetadata;
+  };
 };
+
+export type AccountRole = "user" | "reviewer" | "admin";
 
 type Entitlement = {
   status?: string;
 };
+
+export function isReviewerEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return appConfig.reviewerEmails.includes(email.trim().toLowerCase());
+}
+
+export function resolveAccountRole(user?: SupabaseSession["user"]): AccountRole {
+  const metadataRoles = [user?.app_metadata?.role, user?.user_metadata?.role].map((role) =>
+    typeof role === "string" ? role.trim().toLowerCase() : "",
+  );
+  if (metadataRoles.includes("admin")) return "admin";
+
+  const hasReviewerFlag =
+    user?.app_metadata?.reviewer === true ||
+    user?.user_metadata?.reviewer === true ||
+    user?.app_metadata?.full_access === true ||
+    user?.user_metadata?.full_access === true;
+
+  if (metadataRoles.includes("reviewer") || hasReviewerFlag || isReviewerEmail(user?.email)) {
+    return "reviewer";
+  }
+  return "user";
+}
+
+export function hasFullPlatformAccess(user?: SupabaseSession["user"]): boolean {
+  return resolveAccountRole(user) !== "user";
+}
 
 export function supabaseHeaders(accessToken?: string): HeadersInit {
   return {

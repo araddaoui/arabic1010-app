@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button, Progress, Modal, Confetti } from "@/components/ui";
 import { useApp, levelFromXp, MODULE_META, BADGES, DEV_UNLOCK_ALL, type ModuleKey } from "@/lib/store";
 import { cn } from "@/utils/cn";
-import { isProductionMode } from "@/lib/config";
+import { isBillingEnabled, isSupabaseAuthEnabled } from "@/lib/config";
 import { getStoredSupabaseSession } from "@/lib/auth";
 import { createCheckoutSession, type BillingPlan } from "@/lib/billing";
 
@@ -31,9 +31,13 @@ export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => 
     yearly: { price: "$39", per: "/year", note: "Save 35%" },
   } as const;
   const startCheckout = async () => {
-    if (!isProductionMode) {
-      upgrade();
-      onClose();
+    if (!isBillingEnabled) {
+      if (!isSupabaseAuthEnabled) {
+        upgrade();
+        onClose();
+      } else {
+        setError("Billing is not configured for this deployment.");
+      }
       return;
     }
     const session = getStoredSupabaseSession();

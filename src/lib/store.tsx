@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
-import { isProductionMode } from "@/lib/config";
+import { isSupabaseAuthEnabled } from "@/lib/config";
 import { getStoredSupabaseSession, signInWithSupabase, signOutWithSupabase, signUpWithSupabase } from "@/lib/auth";
-import { hasActiveEntitlement } from "@/lib/supabase";
+import {
+  hasActiveEntitlement,
+  resolveAccountRole,
+  type SupabaseSession,
+} from "@/lib/supabase";
 
 export type ModuleKey = "cognates" | "letters" | "numbers" | "vocab" | "dialogue" | "map" | "typing";
 
@@ -34,7 +38,7 @@ export type Profile = {
   id: string;
   email: string;
   name: string;
-  role: "user" | "admin";
+  role: "user" | "reviewer" | "admin";
   xp: number;
   streak: number;
   lastActive: string;
@@ -114,6 +118,39 @@ function demoProgress(mod: ModuleKey, keys: string[], pct = 100): Record<string,
 }
 
 type DB = { users: Profile[]; feedback: Feedback[]; currentUserId: string | null };
+
+function buildAuthProfile(session: SupabaseSession, entitled: boolean): Profile | null {
+  const authUser = session.user;
+  if (!authUser?.id || !authUser.email) return null;
+  const role = resolveAccountRole(authUser);
+  const premium = role !== "user" || entitled;
+  return seedProfile({
+    id: authUser.id,
+    email: authUser.email,
+    name: authUser.user_metadata?.display_name || authUser.email.split("@")[0],
+    role,
+    premium,
+  });
+}
+
+function mergeAuthProfile(existing: Profile | undefined, fresh: Profile): Profile {
+  if (!existing) return fresh;
+  const role = existing.role === "admin" && fresh.role !== "admin" ? "admin" : fresh.role;
+  const premium = fresh.premium || role === "reviewer" || role === "admin";
+  return { ...existing, email: fresh.email, name: fresh.name, role, premium };
+}
+
+function upsertAuthProfile(current: DB, fresh: Profile): DB {
+  const existing = current.users.find((item) => item.id === fresh.id);
+  const profile = mergeAuthProfile(existing, fresh);
+  return {
+    ...current,
+    users: existing
+      ? current.users.map((item) => (item.id === profile.id ? profile : item))
+      : [...current.users, profile],
+    currentUserId: profile.id,
+  };
+}
 
 function initialDB(): DB {
   const admin = seedProfile({
@@ -218,29 +255,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!isProductionMode) return;
+    if (!isSupabaseAuthEnabled) return;
     const session = getStoredSupabaseSession();
     const authUser = session?.user;
     if (!session?.access_token || !authUser?.id || !authUser.email) return;
-    const authEmail = authUser.email;
     let cancelled = false;
     void hasActiveEntitlement(session)
       .catch(() => false)
-      .then((premium) => {
+      .then((entitled) => {
         if (cancelled) return;
-        const profile = seedProfile({
-          id: authUser.id,
-          email: authEmail,
-          name: authUser.user_metadata?.display_name || authEmail.split("@")[0],
-          premium,
-        });
-        setDb((current) => ({
-          ...current,
-          users: current.users.some((item) => item.id === profile.id)
-            ? current.users.map((item) => item.id === profile.id ? { ...item, premium } : item)
-            : [...current.users, profile],
-          currentUserId: profile.id,
-        }));
+        const profile = buildAuthProfile(session, entitled);
+        if (!profile) return;
+        setDb((current) => upsertAuthProfile(current, profile));
       });
     return () => { cancelled = true; };
   }, [db.currentUserId]);
@@ -293,25 +319,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn: Ctx["signIn"] = async (email, password) => {
-    if (isProductionMode) {
+    if (isSupabaseAuthEnabled) {
       try {
         const session = await signInWithSupabase(email, password);
-        const authUser = session.user;
-        if (!authUser?.id || !authUser.email) return "Supabase returned an incomplete user session.";
-        const premium = await hasActiveEntitlement(session).catch(() => false);
-        const profile = seedProfile({
-          id: authUser.id,
-          email: authUser.email,
-          name: authUser.user_metadata?.display_name || authUser.email.split("@")[0],
-          premium,
-        });
-        setDb((d) => ({
-          ...d,
-          users: d.users.some((u) => u.id === profile.id)
-            ? d.users.map((u) => u.id === profile.id ? { ...u, premium } : u)
-            : [...d.users, profile],
-          currentUserId: profile.id,
-        }));
+        if (!session.user?.id || !session.user.email) return "Supabase returned an incomplete user session.";
+        const entitled = await hasActiveEntitlement(session).catch(() => false);
+        const profile = buildAuthProfile(session, entitled);
+        if (!profile) return "Supabase returned an incomplete user session.";
+        setDb((d) => upsertAuthProfile(d, profile));
         return null;
       } catch (error) {
         return error instanceof Error ? error.message : "Supabase sign-in failed.";
@@ -330,14 +345,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp: Ctx["signUp"] = async (name, email, password) => {
-    if (isProductionMode) {
+    if (isSupabaseAuthEnabled) {
       try {
         const session = await signUpWithSupabase(name, email, password);
         if (!session.access_token) return "Check your email to confirm your new account.";
-        const authUser = session.user;
-        if (!authUser?.id || !authUser.email) return "Check your email to confirm your new account.";
-        const profile = seedProfile({ id: authUser.id, email: authUser.email, name });
-        setDb((d) => ({ ...d, users: [...d.users, profile], currentUserId: profile.id }));
+        const profile = buildAuthProfile(session, false);
+        if (!profile) return "Check your email to confirm your new account.";
+        if (name.trim()) profile.name = name.trim();
+        setDb((d) => upsertAuthProfile(d, profile));
         return null;
       } catch (error) {
         return error instanceof Error ? error.message : "Supabase sign-up failed.";
@@ -360,7 +375,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = () => {
-    if (isProductionMode) void signOutWithSupabase();
+    if (isSupabaseAuthEnabled) void signOutWithSupabase();
     setDb((d) => ({ ...d, currentUserId: null }));
   };
 
