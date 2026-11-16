@@ -3,6 +3,7 @@ import { AppProvider, useApp } from "./lib/store";
 import Layout from "./components/Layout";
 import { Spinner } from "./components/ui";
 import Auth from "./pages/Auth";
+import Sample from "./pages/Sample";
 import Dashboard from "./pages/Dashboard";
 import Cognates from "./pages/Cognates";
 import Letters from "./pages/Letters";
@@ -50,7 +51,10 @@ function Shell() {
     );
   }
 
-  if (!user) return <Auth />;
+  if (!user) {
+    if (path === "/sample") return <Sample navigate={navigate} />;
+    return <Auth navigate={navigate} initialMode={path === "/signup" ? "up" : "in"} />;
+  }
 
   const page = () => {
     switch (path) {

@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui";
 import { useApp } from "@/lib/store";
 import { isSupabaseAuthEnabled } from "@/lib/config";
+import { track } from "@/lib/analytics";
 
-export default function Auth() {
+export default function Auth({ navigate, initialMode = "in" }: { navigate?: (p: string) => void; initialMode?: "in" | "up" }) {
   const { signIn, signUp } = useApp();
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up">(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +17,7 @@ export default function Auth() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "up") track("signup_start");
     setBusy(true); setErr(null);
     const msg = mode === "in" ? await signIn(email, password) : await signUp(name, email, password);
     setErr(msg); setBusy(false);
@@ -48,6 +50,11 @@ export default function Auth() {
             <div><div className="text-lg font-bold text-gold">329</div>audio files</div>
             <div><div className="text-lg font-bold text-gold">12</div>badges</div>
           </div>
+          {navigate && (
+            <Button className="mt-6 w-full" onClick={() => navigate("/sample")}>
+              Try one Arabic word — no account needed →
+            </Button>
+          )}
         </div>
 
         <div className="p-5 sm:p-8">
@@ -61,6 +68,11 @@ export default function Auth() {
             <h1 className="mt-1 text-xl font-extrabold leading-snug">Start reading and practicing Modern Standard Arabic.</h1>
             <p className="mt-1 text-xs leading-relaxed text-sand/60">Explore familiar words, letters, and everyday language — one short practice at a time.</p>
             <p className="mt-2 text-[10px] text-sand/40">7 modules · 329 audio files · 12 badges</p>
+            {navigate && (
+              <Button size="sm" className="mt-3 w-full" onClick={() => navigate("/sample")}>
+                Try one Arabic word — no account needed
+              </Button>
+            )}
           </div>
 
           <div className="mb-4 flex rounded-xl bg-black/25 p-1 sm:mb-6">
