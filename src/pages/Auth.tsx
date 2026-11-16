@@ -53,6 +53,7 @@ export default function Auth() {
             <div className="flex items-center gap-2">
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-gold to-maroon text-base font-black text-ink">ع</span>
               <span className="text-base font-extrabold">Arabic<span className="text-gold">1010</span></span>
+              <span dir="rtl" className="ml-auto font-arabic text-base font-extrabold">اَلْعَرَبِيَّة</span>
             </div>
             <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold/80">Beginner-friendly · Modern Standard Arabic</p>
             <h1 className="mt-1 text-xl font-extrabold leading-snug">Start reading and practicing Modern Standard Arabic.</h1>
