@@ -24,7 +24,7 @@ export default function Auth() {
   const input = "w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-gold/70";
 
   return (
-    <div className="pattern flex min-h-screen items-center justify-center p-4">
+    <div className="pattern flex min-h-screen items-center justify-center p-3 sm:p-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-gold/25 glass md:grid-cols-2">
         <div className="hidden flex-col justify-between bg-gradient-to-br from-maroon/70 via-ink to-ink p-8 md:flex">
@@ -48,8 +48,19 @@ export default function Auth() {
           </div>
         </div>
 
-        <div className="p-8">
-          <div className="mb-6 flex rounded-xl bg-black/25 p-1">
+        <div className="p-5 sm:p-8">
+          <div className="mb-4 md:hidden">
+            <div className="flex items-center gap-2">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-gold to-maroon text-base font-black text-ink">ع</span>
+              <span className="text-base font-extrabold">Arabic<span className="text-gold">1010</span></span>
+            </div>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold/80">Beginner-friendly · Modern Standard Arabic</p>
+            <h1 className="mt-1 text-xl font-extrabold leading-snug">Start reading and practicing Modern Standard Arabic.</h1>
+            <p className="mt-1 text-xs leading-relaxed text-sand/60">Explore familiar words, letters, and everyday language — one short practice at a time.</p>
+            <p className="mt-2 text-[10px] text-sand/40">7 modules · 329 audio files · 12 badges</p>
+          </div>
+
+          <div className="mb-4 flex rounded-xl bg-black/25 p-1 sm:mb-6">
             {(["in", "up"] as const).map((m) => (
               <button key={m} onClick={() => { setMode(m); setErr(null); }}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${mode === m ? "bg-gold text-ink" : "text-sand/60"}`}>
