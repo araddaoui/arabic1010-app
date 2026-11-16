@@ -33,6 +33,7 @@ export default function Auth() {
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-gold to-maroon text-xl font-black text-ink">ع</span>
               <span className="text-lg font-extrabold">Arabic<span className="text-gold">1010</span></span>
+              <span dir="rtl" className="ml-auto font-arabic text-lg font-extrabold">اَلْعَرَبِيَّة</span>
             </div>
             <h1 className="mt-8 text-3xl font-extrabold leading-tight">
               Modern Standard Arabic,<br />built the way adults learn.
