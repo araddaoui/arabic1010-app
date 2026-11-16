@@ -8,8 +8,8 @@ export default function Auth() {
   const { signIn, signUp } = useApp();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("learner@arabic1010.app");
-  const [password, setPassword] = useState("arabic1010");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
@@ -22,6 +22,7 @@ export default function Auth() {
   };
 
   const input = "w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-gold/70";
+  const label = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-sand/55";
 
   return (
     <div className="pattern flex min-h-screen items-center justify-center p-3 sm:p-4">
@@ -72,10 +73,19 @@ export default function Auth() {
 
           <form onSubmit={submit} className="space-y-3">
             {mode === "up" && (
-              <input className={input} placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <div>
+                <label htmlFor="auth-name" className={label}>Full name</label>
+                <input id="auth-name" autoComplete="name" className={input} placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
             )}
-            <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input className={input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div>
+              <label htmlFor="auth-email" className={label}>Email address</label>
+              <input id="auth-email" autoComplete="email" className={input} type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label htmlFor="auth-password" className={label}>{mode === "up" ? "Create a password" : "Password"}</label>
+              <input id="auth-password" autoComplete={mode === "up" ? "new-password" : "current-password"} className={input} type="password" placeholder={mode === "up" ? "Create a password" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
             {mode === "up" && <p className="text-[11px] text-sand/40">Passwords are checked against known breach lists (leaked-password protection enabled).</p>}
             {err && <div className="rounded-lg border border-err/50 bg-err/15 p-3 text-xs text-red-200">{err}</div>}
             <Button type="submit" className="w-full" size="lg" disabled={busy}>
