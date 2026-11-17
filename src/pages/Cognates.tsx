@@ -153,7 +153,7 @@ export default function Cognates() {
 
       <UpgradeModal open={locked} onClose={() => setLocked(false)} />
       {!DEV_UNLOCK_ALL && !user?.premium && (
-        <p className="text-center text-xs text-sand/40">Free tier: 8 cognates, one per major category. Premium unlocks all 30.</p>
+        <p className="text-center text-xs text-sand/40">Free tier: 8 of 30 cognates. Premium unlocks all 30.</p>
       )}
     </div>
   );

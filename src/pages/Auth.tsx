@@ -5,6 +5,16 @@ import { useApp } from "@/lib/store";
 import { isSupabaseAuthEnabled } from "@/lib/config";
 import { track } from "@/lib/analytics";
 
+const TABLE_ROWS: [string, string, string][] = [
+  ["Cognates", "8 of 30", "All 30"],
+  ["Letters & vowels", "7 of 28", "All 28"],
+  ["Numbers", "0–10", "0–20"],
+  ["Vocabulary", "5 of 20", "All 20"],
+  ["Dialogue", "4 of 20 lines", "All 20"],
+  ["Arab World map", "5 of 22", "All 22"],
+  ["Typing", "As you learn", "As you learn"],
+];
+
 export default function Auth({ navigate, initialMode = "in" }: { navigate?: (p: string) => void; initialMode?: "in" | "up" }) {
   const { signIn, signUp } = useApp();
   const [mode, setMode] = useState<"in" | "up">(initialMode);
@@ -159,6 +169,27 @@ export default function Auth({ navigate, initialMode = "in" }: { navigate?: (p: 
             </motion.div>
             )}
           </>}
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3 text-sand/75">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sand/50">Free vs Premium</p>
+              <p className="text-[10px] text-sand/40">$5/mo · $39/yr · 14-day trial</p>
+            </div>
+            <div className="mt-2 grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 text-[11px] leading-5">
+              <span className="text-sand/30">Module</span>
+              <span className="text-right text-sand/30">Free</span>
+              <span className="text-right text-sand/30">Premium</span>
+              {TABLE_ROWS.map(([module, free, premium]) => (
+                <div key={module} className="contents">
+                  <span className="text-sand/70">{module}</span>
+                  <span className="text-right text-sand/55">{free}</span>
+                  <span className="text-right text-sand/80">{premium}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] leading-4 text-sand/40">Typing opens as you master the letters and words you&apos;ve learned.</p>
+            <p className="text-[10px] leading-4 text-sand/40">Not ready for premium? Everything you&apos;ve unlocked stays open — free tier forever, no card required.</p>
+          </div>
 
           <p className="mt-4 text-center text-[10px] text-sand/30">
             {isSupabaseAuthEnabled ? "Arabic1010 · secure account authentication enabled" : "Arabic1010 · progress saved locally · no data sent to any server in this release"}
