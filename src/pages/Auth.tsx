@@ -106,15 +106,11 @@ export default function Auth({ navigate, initialMode = "in" }: { navigate?: (p: 
             </Button>
           </form>
 
-          <div className="my-4 flex items-center gap-3 text-xs text-sand/30">
-            <span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" />
-          </div>
-
           {!isSupabaseAuthEnabled && <>
             {/* Demo mode — clearly labelled, no pretence of real Google OAuth */}
             <Button
               variant="ghost"
-              className="w-full"
+              className="mt-4 w-full"
               onClick={() => setShowDemo((s) => !s)}
             >
               🎓 Try a demo account
