@@ -303,10 +303,18 @@ function audioCtx(): AudioContext {
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
     sharedCtx = new Ctx();
   }
-  // iOS starts the context suspended until a gesture; resuming is a no-op when
-  // it is already running and makes decode/analysis reliable after an await.
-  if (sharedCtx.state === "suspended") void sharedCtx.resume().catch(() => { /* noop */ });
   return sharedCtx;
+}
+
+/**
+ * Unlock Web Audio while a user gesture is still active. iOS Safari starts the
+ * context suspended; calling `resume()` later, after a network await, can leave
+ * it suspended, which makes `decodeAudioData` return unusable audio. Call this
+ * synchronously at the start of any recording/playback button handler.
+ */
+export function unlockAudio(): void {
+  const ctx = audioCtx();
+  if (ctx.state === "suspended") void ctx.resume().catch(() => { /* noop */ });
 }
 
 const refCache = new Map<string, AudioBuffer>();
@@ -904,8 +912,9 @@ export async function openMic(): Promise<MediaStream> {
 
 /** Level meter for the waveform UI. Does not open or close the mic stream. */
 export function createAnalyzer(stream: MediaStream, onLevel: (v: number) => void) {
-  const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  if (ctx.state === "suspended") void ctx.resume().catch(() => { /* noop */ });
+  // Reuse the unlocked context: creating a second one here leaves it suspended
+  // on iOS, and closing it would also destroy the decoder used for scoring.
+  const ctx = audioCtx();
   const src = ctx.createMediaStreamSource(stream);
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 512;
@@ -923,7 +932,7 @@ export function createAnalyzer(stream: MediaStream, onLevel: (v: number) => void
   return {
     stop() {
       cancelAnimationFrame(raf);
-      try { ctx.close(); } catch { /* noop */ }
+      try { src.disconnect(); analyser.disconnect(); } catch { /* noop */ }
     },
   };
 }
@@ -991,15 +1000,21 @@ export function recordClip(stream: MediaStream, ms: number): { stop: () => void;
   });
 
   try {
-    recorder.start();
+    // Ask for periodic chunks: Safari sometimes emits no data at all when the
+    // recorder is stopped without a timeslice.
+    recorder.start(200);
   } catch {
     return empty;
   }
 
-  const timer = setTimeout(() => { try { recorder.stop(); } catch { /* noop */ } }, ms);
+  const timer = setTimeout(() => {
+    try { recorder.requestData?.(); } catch { /* noop */ }
+    try { recorder.stop(); } catch { /* noop */ }
+  }, ms);
   return {
     stop() {
       clearTimeout(timer);
+      try { recorder.requestData?.(); } catch { /* noop */ }
       try { recorder.stop(); } catch { /* noop */ }
     },
     done,

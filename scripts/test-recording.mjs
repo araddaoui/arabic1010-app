@@ -36,6 +36,7 @@ const audioStub = `
   globalThis.__calls = { recognition: 0, micOpen: 0, recordClip: 0, assessed: 0 };
   const scenario = ${JSON.stringify(scenario)};
   export const audioPath = (f, k) => "/audio/" + f + "/" + k + ".mp3";
+  export const unlockAudio = () => {};
   export const play = async () => {};
   export const stopAll = () => {};
   export function listen() {

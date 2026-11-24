@@ -7,6 +7,7 @@ import {
   stopAll,
   listen,
   describeRecognitionError,
+  unlockAudio,
   speechSupported,
   openMic,
   createAnalyzer,
@@ -109,6 +110,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     alternatives: { transcript: string; score: number }[];
   } | null>(null);
   const [progressIdx, setProgressIdx] = useState(-1);
+  const [usedMode, setUsedMode] = useState<string>("auto");
   const recRef = useRef<{ stop: () => void } | null>(null);
   /** Guards async work (a recognition attempt can outlive the component). */
   const aliveRef = useRef(true);
@@ -120,7 +122,7 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     aliveRef.current = true;
     return () => { aliveRef.current = false; stopAll(); recRef.current?.stop(); };
   }, []);
-  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setRecogInfo(null); setListening(false); }, [fileKey]);
+  useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setRecogInfo(null); setListening(false); setUsedMode("auto"); }, [fileKey]);
 
   const doPlay = async (r = rate) => {
     setPlaying(true);
@@ -138,6 +140,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 
   const record = async () => {
     if (recording) return;
+    // Must run before the first `await`: iOS only unlocks Web Audio while a
+    // user gesture is active, and a locked decoder ruins the comparison.
+    unlockAudio();
     setRecording(true); setLevels([]); setScore(null); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setRecogInfo(null);
     const captured: number[] = [];
     let analyzer: { stop: () => void } | null = null;
@@ -274,11 +279,13 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       stopMeter();
       setRecording(false);
     }
-    if (handled) return;
 
     // `run` assigned these from inside a closure; TypeScript's flow analysis
     // cannot see that, so read them through explicitly typed views here.
     const finalMode = mode as "acoustic" | "hybrid" | "recognition";
+    setUsedMode(finalMode);
+    if (handled) return;
+
     const finalRecog = recogResult as RecogResult | null;
     const finalBlob = blob as Blob | null;
 
@@ -463,7 +470,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
             <div className="text-xs text-sand/50">
               {heard
                 ? <>Heard: <span className="ar" dir="rtl">{heard}</span></>
-                : "Compared with the native-speaker model."}
+                : usedMode === "acoustic"
+                  ? "Acoustic comparison with the native model (speech recognition unavailable here)."
+                  : "Compared with the native-speaker model."}
             </div>
             {quality && (
               <div className={cn("text-[11px]", quality === "Clear recording" ? "text-sand/40" : "text-gold/80")}>
