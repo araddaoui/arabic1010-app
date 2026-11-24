@@ -345,7 +345,9 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           a = await assessLetter(src, fileKey, finalBlob, refs);
         } else {
           const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
-          a = await assessAgainstReference(src, finalBlob, contrastSrcs);
+          // Acoustic mode here means this device has no working speech
+          // recognition, so use the cross-device calibration.
+          a = await assessAgainstReference(src, finalBlob, contrastSrcs, finalMode === "acoustic");
         }
         setMetrics(a.metrics ?? null);
         setQuality(a.qualityLabel ?? null);

@@ -65,7 +65,7 @@ function percentile(sorted: Float32Array, p: number): number {
  * quiet room tone is trimmed away instead of riding along and polluting the
  * comparison (the fixed-threshold version left ambient noise in short clips).
  */
-export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.006): Float32Array {
+export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.006, relaxed = false): Float32Array {
   if (!samples.length) return samples;
   const env = rmsEnvelope(samples, rate);
   if (!env.length) return samples;
@@ -76,7 +76,13 @@ export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.00
   // clear noise floor) isn't trimmed away entirely. The peak-relative term is
   // kept generous (12%) so low-level room tone and trailing echo after the
   // utterance fall below threshold instead of padding the clip.
-  const threshold = Math.min(Math.max(floor * 3, peak * 0.12, absFloor), peak * 0.5);
+  // A noisy phone recording has a high noise floor, so the default cap of
+  // peak/2 keeps only the loudest half of the utterance and makes the clip look
+  // far shorter than the model. The relaxed variant (used for whole-word
+  // acoustic scoring) keeps quieter speech frames and a wider safety pad.
+  const threshold = relaxed
+    ? Math.min(Math.max(floor * 1.6, peak * 0.08, absFloor * 0.5), peak * 0.28)
+    : Math.min(Math.max(floor * 3, peak * 0.12, absFloor), peak * 0.5);
   const hop = Math.round((rate * 10) / 1000);
   const frame = Math.round((rate * 20) / 1000);
   let first = -1;
@@ -88,7 +94,7 @@ export function trimSilence(samples: Float32Array, rate = 16000, absFloor = 0.00
     }
   }
   if (first < 0) return new Float32Array(0);
-  const pad = Math.round(rate * 0.02);
+  const pad = Math.round(rate * (relaxed ? 0.06 : 0.02));
   const start = Math.max(0, first * hop - pad);
   const end = Math.min(samples.length - 1, last * hop + Math.round(frame / 2) + pad);
   return samples.slice(start, end + 1);

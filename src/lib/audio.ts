@@ -343,17 +343,18 @@ const cmvnReferenceCache = new Map<string, CmvnReference>();
  * Trim + MFCC + variance-normalise a native reference once per URL.
  * Cached entries are immutable — callers must not mutate `frames`.
  */
-async function referenceFrames(src: string): Promise<CmvnReference> {
-  const cached = cmvnReferenceCache.get(src);
+async function referenceFrames(src: string, relaxed = false): Promise<CmvnReference> {
+  const key = `${src}|${relaxed}`;
+  const cached = cmvnReferenceCache.get(key);
   if (cached) return cached;
-  const pcm = trimSilence(toMono16k(await loadReference(src)));
+  const pcm = trimSilence(toMono16k(await loadReference(src)), 16000, 0.006, relaxed);
   const entry: CmvnReference = {
     frames: cepstralVarianceNormalize(mfccFrames(pcm)),
     samples: pcm.length,
   };
   // Only memoise usable clips; too-short references still fail exactly as
   // before, via the caller's `samples` guard.
-  if (entry.frames.length) cmvnReferenceCache.set(src, entry);
+  if (entry.frames.length) cmvnReferenceCache.set(key, entry);
   return entry;
 }
 
@@ -407,6 +408,10 @@ export type Assessment = {
 // self-calibrating and needs no per-browser tuning.
 const Z_BIAS = -0.8; // z that maps to 50; negative so an average target still passes
 const Z_SLOPE = 0.8; // larger = gentler
+// Cross-device acoustic scoring (phones without working speech recognition)
+// has to cope with different codecs, mics and speaking pace. It uses a gentler
+// calibration so a genuine attempt is not reported as a near-miss.
+const Z_BIAS_LENIENT = -1.6;
 
 // Absolute logistic, used only when there are no contrasts to compare against.
 const SCORE_MID = 0.42; // effective distance that maps to ~50
@@ -486,11 +491,14 @@ export function assessDebugEnabled(): boolean {
 }
 
 /** Whether a capture is clean enough to score, or should prompt a re-record. */
-function qualityAcceptable(q: RecordingQuality): boolean {
+function qualityAcceptable(q: RecordingQuality, lenient = false): boolean {
   // Level is judged *relative to the recording's own noise floor* via SNR, so a
   // quiet-but-clean mic is not rejected as "too quiet". Only genuine silence
-  // (near-zero SNR / voiced length) fails.
-  return q.clipping <= 0.06 && q.snrDb >= 5 && q.voicedMs >= 120;
+  // (near-zero SNR / voiced length) fails. Phone microphones in acoustic-only
+  // mode get slightly wider limits, but still must contain real voiced sound.
+  return lenient
+    ? q.clipping <= 0.1 && q.snrDb >= 3 && q.voicedMs >= 80
+    : q.clipping <= 0.06 && q.snrDb >= 5 && q.voicedMs >= 120;
 }
 
 /**
@@ -510,13 +518,14 @@ export async function assessAgainstReference(
   refSrc: string,
   userBlob: Blob,
   contrastSrcs: string[] = [],
+  lenient = false,
 ): Promise<Assessment> {
-  const [ref, user] = await Promise.all([referenceFrames(refSrc), decodeBlob(userBlob)]);
+  const [ref, user] = await Promise.all([referenceFrames(refSrc, true), decodeBlob(userBlob)]);
   const rawUser = toMono16k(user);
-  const userPcm = trimSilence(rawUser);
+  const userPcm = trimSilence(rawUser, 16000, 0.006, true);
   const quality = recordingQuality(rawUser);
-  const qualityOk = qualityAcceptable(quality);
-  const qualityLabel = recordingQualityLabel(quality);
+  const qualityOk = qualityAcceptable(quality, lenient);
+  const qualityLabel = lenient && qualityOk ? "Clear enough to score" : recordingQualityLabel(quality);
 
   if (ref.samples < 1600 || userPcm.length < 1600) {
     // Too short to compare phonetically — never fabricate a score from level.
@@ -540,7 +549,7 @@ export async function assessAgainstReference(
   const contrastResults = await Promise.all(
     contrastSrcs.map(async (cs) => {
       try {
-        const cRef = await referenceFrames(cs);
+        const cRef = await referenceFrames(cs, true);
         if (cRef.samples < 1600) return null;
         return effectiveDistance(dtwProfile(cRef.frames, userFrames, 0.25, "cosine")).dEff;
       } catch {
@@ -565,7 +574,7 @@ export async function assessAgainstReference(
     const variance = cands.reduce((a, b) => a + (b - mean) ** 2, 0) / cands.length;
     const std = Math.max(Math.sqrt(variance), 0.02);
     targetZ = (mean - dEff) / std;
-    score = 100 / (1 + Math.exp((Z_BIAS - targetZ) / Z_SLOPE));
+    score = 100 / (1 + Math.exp(((lenient ? Z_BIAS_LENIENT : Z_BIAS) - targetZ) / Z_SLOPE));
   } else {
     // No contrasts available — fall back to the gentle absolute logistic.
     score = 100 / (1 + Math.exp((dEff - SCORE_MID) / SCORE_SLOPE));
@@ -575,11 +584,15 @@ export async function assessAgainstReference(
     Math.min(ref.samples, userPcm.length) / Math.max(ref.samples, userPcm.length);
   const qf = qualityFactor(quality);
   // Only penalise a genuinely mismatched length; a little slack is normal.
-  const dur = durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio;
+  const dur = lenient
+    ? (durationRatio >= 0.3 ? 1 : 0.7 + durationRatio)
+    : (durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio);
   // Soft guard: a correct match should never be far from its own model, so only
   // damp the score when the target distance is implausibly large (garbage, or a
   // different sound that happens not to be in the contrast set).
-  const guard = dEff <= 0.55 ? 1 : Math.max(0.4, 1 - (dEff - 0.55) * 2);
+  const guard = lenient
+    ? (dEff <= 0.8 ? 1 : Math.max(0.5, 1 - (dEff - 0.8) * 1.2))
+    : (dEff <= 0.55 ? 1 : Math.max(0.4, 1 - (dEff - 0.55) * 2));
   score = Math.max(0, Math.min(100, Math.round(score * guard * dur * qf)));
 
   const metrics: AssessmentMetrics = {
