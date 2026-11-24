@@ -13,11 +13,28 @@ type CheckoutSession = {
   metadata?: Record<string, string>;
 };
 
+type SubscriptionObject = {
+  id?: string;
+  customer?: string | null;
+  status?: string;
+  metadata?: Record<string, string>;
+};
+
+type InvoiceObject = {
+  id?: string;
+  customer?: string | null;
+  subscription?: string | null;
+  status?: string;
+};
+
 type StripeEvent = {
   id?: string;
   type?: string;
-  data?: { object?: CheckoutSession };
+  data?: { object?: CheckoutSession & SubscriptionObject & InvoiceObject };
 };
+
+/** Stripe subscription statuses that still grant access. */
+const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -110,6 +127,45 @@ async function upsertEntitlement(
   }
 }
 
+/**
+ * Update an existing entitlement when a subscription changes state. Matching by
+ * subscription id (preferred) or customer id also covers events that carry no
+ * Supabase user id, such as invoices and cancellations.
+ */
+async function setEntitlementStatus(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  match: { subscriptionId?: string | null; customerId?: string | null },
+  status: string,
+  plan?: string,
+): Promise<void> {
+  const filter = match.subscriptionId
+    ? `stripe_subscription_id=eq.${encodeURIComponent(match.subscriptionId)}`
+    : match.customerId
+      ? `stripe_customer_id=eq.${encodeURIComponent(match.customerId)}`
+      : null;
+  if (!filter) throw new Error("Event is missing both subscription and customer id");
+
+  const body: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+  if (plan === "monthly" || plan === "yearly") body.plan = plan;
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/entitlements?${filter}`, {
+    method: "PATCH",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    console.error("Entitlement status update failed", await response.text());
+    throw new Error("Unable to update entitlement status");
+  }
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -127,16 +183,53 @@ Deno.serve(async (request) => {
     if (!valid) return json({ error: "Invalid Stripe signature" }, 400);
 
     const event = JSON.parse(payload) as StripeEvent;
-    if (event.type !== "checkout.session.completed") return json({ received: true });
+    const object = event.data?.object;
+    if (!object) return json({ received: true });
 
-    const session = event.data?.object;
-    if (!session || session.mode !== "subscription") return json({ received: true });
+    const supabaseUrl = requiredEnv("SUPABASE_URL");
+    const serviceRoleKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    await upsertEntitlement(
-      requiredEnv("SUPABASE_URL"),
-      requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
-      session,
-    );
+    switch (event.type) {
+      case "checkout.session.completed": {
+        if (object.mode !== "subscription") return json({ received: true });
+        await upsertEntitlement(supabaseUrl, serviceRoleKey, object);
+        break;
+      }
+      case "customer.subscription.updated": {
+        // Renewals, plan changes, past-due and reactivation all arrive here.
+        const status = object.status ?? "";
+        if (!status) return json({ received: true });
+        await setEntitlementStatus(
+          supabaseUrl,
+          serviceRoleKey,
+          { subscriptionId: object.id, customerId: object.customer },
+          ACTIVE_STATUSES.has(status) ? "active" : status,
+          object.metadata?.plan,
+        );
+        break;
+      }
+      case "customer.subscription.deleted": {
+        await setEntitlementStatus(
+          supabaseUrl,
+          serviceRoleKey,
+          { subscriptionId: object.id, customerId: object.customer },
+          "canceled",
+        );
+        break;
+      }
+      case "invoice.payment_failed": {
+        await setEntitlementStatus(
+          supabaseUrl,
+          serviceRoleKey,
+          { subscriptionId: object.subscription, customerId: object.customer },
+          "past_due",
+        );
+        break;
+      }
+      default:
+        // Unhandled event types are acknowledged so Stripe stops retrying.
+        return json({ received: true });
+    }
 
     return json({ received: true });
   } catch (error) {

@@ -43,9 +43,11 @@ function frameDistance(a: Float32Array, b: Float32Array, metric: DtwMetric): num
  * *worst* part of the match (a single mispronounced letter), not just the
  * average, which is essential for words where one bad phone is diluted.
  *
- * `distance` is path-normalized (accumulated distance divided by path length),
- * so it is comparable across utterances of different duration. Identical
- * sequences yield ~0; unrelated sequences yield progressively larger values.
+ * `distance` is accumulated distance divided by `n + m` (the two sequence
+ * lengths), so it is comparable across utterances of different duration.
+ * Identical sequences yield ~0; unrelated sequences yield progressively larger
+ * values. (`n + m` is a fixed normaliser for a given pair, not the alignment
+ * path length — the upstream score thresholds are calibrated to it.)
  */
 export function dtwProfile(
   a: Float32Array[],

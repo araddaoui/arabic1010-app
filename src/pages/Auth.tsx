@@ -150,7 +150,8 @@ export default function Auth({ navigate, initialMode = "in" }: { navigate?: (p: 
                 Admin demo — Dr. Nadia Haddad (dashboard access)
               </button>
               <p className="text-sand/35 text-[10px]">
-                Password for both demo accounts: <span className="font-mono">arabic1010</span>
+                Password for both demo accounts: <span className="font-mono">arabic1010</span>. In demo mode any
+                password of 6+ characters is accepted — these accounts live only in this browser.
               </p>
             </motion.div>
             )}

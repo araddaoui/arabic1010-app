@@ -5,14 +5,32 @@ import { useApp } from "@/lib/store";
 import { cn } from "@/utils/cn";
 
 export default function Settings() {
-  const { user, settings, setSettings, addFeedback, signOut, db } = useApp();
+  const { user, settings, setSettings, addFeedback, signOut, db, exportData, importData } = useApp();
   const [rating, setRating] = useState(5);
   const [category, setCategory] = useState<"bug" | "suggestion" | "content" | "UX">("suggestion");
   const [text, setText] = useState("");
   const [sent, setSent] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<{ ok: boolean; text: string } | null>(null);
   if (!user) return null;
   const mine = db.feedback.filter((f) => f.userId === user.id);
+
+  const downloadBackup = () => {
+    const blob = new Blob([exportData()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `arabic1010-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setBackupMsg({ ok: true, text: "Backup downloaded." });
+  };
+
+  const restoreBackup = async (file: File | undefined) => {
+    if (!file) return;
+    const result = importData(await file.text());
+    setBackupMsg({ ok: result.ok, text: result.ok ? "Progress restored." : result.error ?? "Import failed." });
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -31,6 +49,28 @@ export default function Settings() {
         <div className="mt-3 flex gap-2">
           <Button variant="ghost" onClick={signOut}>Sign out</Button>
           {user.premium && <Button variant="outline" onClick={() => window.print()}>Download certificate (PDF)</Button>}
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="font-bold">Backup &amp; restore</h3>
+        <p className="mt-1 text-xs text-sand/50">
+          Progress lives in this browser only. Export a copy before clearing site data, and import it on a new device.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={downloadBackup}>Download backup</Button>
+          <label className="cursor-pointer rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-sand/70 transition hover:bg-white/5">
+            Restore from file
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={(e) => { void restoreBackup(e.target.files?.[0]); e.target.value = ""; }}
+            />
+          </label>
+          {backupMsg && (
+            <span className={cn("text-xs", backupMsg.ok ? "text-ok" : "text-red-400")}>{backupMsg.text}</span>
+          )}
         </div>
       </Card>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { AppProvider, useApp } from "./lib/store";
 import Layout from "./components/Layout";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { Spinner } from "./components/ui";
 import Auth from "./pages/Auth";
 import Sample from "./pages/Sample";
@@ -75,15 +76,19 @@ function Shell() {
 
   return (
     <Layout path={path} navigate={navigate}>
-      <Suspense fallback={<Spinner label="Loading module…" />}>{page()}</Suspense>
+      <ErrorBoundary scope="page" resetKey={path}>
+        <Suspense fallback={<Spinner label="Loading module…" />}>{page()}</Suspense>
+      </ErrorBoundary>
     </Layout>
   );
 }
 
 export default function App() {
   return (
-    <AppProvider>
-      <Shell />
-    </AppProvider>
+    <ErrorBoundary scope="app">
+      <AppProvider>
+        <Shell />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

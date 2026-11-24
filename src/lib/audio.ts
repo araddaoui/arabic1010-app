@@ -320,6 +320,27 @@ export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
   return audioCtx().decodeAudioData(bytes);
 }
 
+type CmvnReference = { frames: Float32Array[]; samples: number };
+const cmvnReferenceCache = new Map<string, CmvnReference>();
+
+/**
+ * Trim + MFCC + variance-normalise a native reference once per URL.
+ * Cached entries are immutable — callers must not mutate `frames`.
+ */
+async function referenceFrames(src: string): Promise<CmvnReference> {
+  const cached = cmvnReferenceCache.get(src);
+  if (cached) return cached;
+  const pcm = trimSilence(toMono16k(await loadReference(src)));
+  const entry: CmvnReference = {
+    frames: cepstralVarianceNormalize(mfccFrames(pcm)),
+    samples: pcm.length,
+  };
+  // Only memoise usable clips; too-short references still fail exactly as
+  // before, via the caller's `samples` guard.
+  if (entry.frames.length) cmvnReferenceCache.set(src, entry);
+  return entry;
+}
+
 export type AssessmentMethod = "reference" | "recognition" | "estimate";
 
 /** Raw numbers behind a score — surfaced by the `?assess=debug` HUD. */
@@ -474,20 +495,19 @@ export async function assessAgainstReference(
   userBlob: Blob,
   contrastSrcs: string[] = [],
 ): Promise<Assessment> {
-  const [ref, user] = await Promise.all([loadReference(refSrc), decodeBlob(userBlob)]);
+  const [ref, user] = await Promise.all([referenceFrames(refSrc), decodeBlob(userBlob)]);
   const rawUser = toMono16k(user);
-  const refPcm = trimSilence(toMono16k(ref));
   const userPcm = trimSilence(rawUser);
   const quality = recordingQuality(rawUser);
   const qualityOk = qualityAcceptable(quality);
   const qualityLabel = recordingQualityLabel(quality);
 
-  if (refPcm.length < 1600 || userPcm.length < 1600) {
+  if (ref.samples < 1600 || userPcm.length < 1600) {
     // Too short to compare phonetically — never fabricate a score from level.
     return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel };
   }
 
-  const refFrames = cepstralVarianceNormalize(mfccFrames(refPcm));
+  const refFrames = ref.frames;
   const userFrames = cepstralVarianceNormalize(mfccFrames(userPcm));
   const { dMean, dWorst, dEff } = effectiveDistance(dtwProfile(refFrames, userFrames, 0.25, "cosine"));
 
@@ -498,18 +518,25 @@ export async function assessAgainstReference(
   // "sounds like the right item".
   const contrastDists: number[] = [];
   let contrast: number | null = null;
-  for (const cs of contrastSrcs) {
-    try {
-      const cRef = await loadReference(cs);
-      const cPcm = trimSilence(toMono16k(cRef));
-      if (cPcm.length < 1600) continue;
-      const cFrames = cepstralVarianceNormalize(mfccFrames(cPcm));
-      const ce = effectiveDistance(dtwProfile(cFrames, userFrames, 0.25, "cosine")).dEff;
-      if (isFinite(ce)) {
-        contrastDists.push(ce);
-        if (contrast === null || ce < contrast) contrast = ce;
+  // Load the contrast models together: on a cold cache these are separate
+  // files, and awaiting them one by one serialised 4-11 network round trips.
+  // Order is preserved so the score is byte-for-byte the same as before.
+  const contrastResults = await Promise.all(
+    contrastSrcs.map(async (cs) => {
+      try {
+        const cRef = await referenceFrames(cs);
+        if (cRef.samples < 1600) return null;
+        return effectiveDistance(dtwProfile(cRef.frames, userFrames, 0.25, "cosine")).dEff;
+      } catch {
+        return null; /* missing/unreadable contrast file — skip it */
       }
-    } catch { /* missing/unreadable contrast file — skip it */ }
+    }),
+  );
+  for (const ce of contrastResults) {
+    if (ce !== null && isFinite(ce)) {
+      contrastDists.push(ce);
+      if (contrast === null || ce < contrast) contrast = ce;
+    }
   }
   const margin = contrast === null ? null : contrast - dEff;
 
@@ -529,7 +556,7 @@ export async function assessAgainstReference(
   }
 
   const durationRatio =
-    Math.min(refPcm.length, userPcm.length) / Math.max(refPcm.length, userPcm.length);
+    Math.min(ref.samples, userPcm.length) / Math.max(ref.samples, userPcm.length);
   const qf = qualityFactor(quality);
   // Only penalise a genuinely mismatched length; a little slack is normal.
   const dur = durationRatio >= 0.5 ? 1 : 0.6 + 0.8 * durationRatio;
@@ -548,7 +575,7 @@ export async function assessAgainstReference(
   // numbers and tune Z_BIAS / Z_SLOPE / WORST_WEIGHT.
   if (import.meta.env.DEV || assessDebugEnabled()) {
     console.debug(
-      `[assess] ref=${Math.round(refPcm.length / 16)}ms user=${Math.round(userPcm.length / 16)}ms ` +
+      `[assess] ref=${Math.round(ref.samples / 16)}ms user=${Math.round(userPcm.length / 16)}ms ` +
       `dMean=${dMean.toFixed(3)} dWorst=${dWorst.toFixed(3)} dEff=${dEff.toFixed(3)} ` +
       `contrast=${contrast === null ? "—" : contrast.toFixed(3)} margin=${margin === null ? "—" : margin.toFixed(3)} ` +
       `z=${targetZ === null ? "—" : targetZ.toFixed(2)} ` +
@@ -675,6 +702,27 @@ function colorDistance(a: Float32Array, b: Float32Array): number {
   return 1 - Math.max(-1, Math.min(1, dot));
 }
 
+const refLetterFeatCache = new Map<string, LetterFeat>();
+
+/**
+ * Memoised `letterFeature` for a native reference, keyed by file + glyph/vowel
+ * (the feature carries both, and its normalization differs from CMVN).
+ */
+async function referenceLetterFeature(
+  src: string,
+  glyph: string,
+  vowel: LetterVowel,
+): Promise<LetterFeat | null> {
+  const key = `${src}|${glyph}|${vowel}`;
+  const cached = refLetterFeatCache.get(key);
+  if (cached) return cached;
+  const feat = letterFeature(trimSilence(toMono16k(await loadReference(src))), glyph, vowel);
+  // Do not memoise failures: an unreadable/too-short file may still be skipped
+  // by the caller, and a temporary fetch error must not stick for the session.
+  if (feat) refLetterFeatCache.set(key, feat);
+  return feat;
+}
+
 /**
  * Score a letter/vowel form with explicit vowel (quality + length) and consonant
  * gates. `refs` are the same-letter vowel forms and same-vowel confusable
@@ -716,16 +764,22 @@ export async function assessLetter(
     return { score: 0, method: "estimate", qualityOk: false, snrDb: quality.snrDb, qualityLabel, unscorableReason: `noUserFeat userMs=${Math.round(userPcm.length / 16)} (min ${LETTER_MIN_SAMPLES / 16})` };
   }
 
-  const refFeats: LetterFeat[] = [];
-  for (const r of refs) {
-    const p = parseLetterKey(r.key);
-    if (!p) continue;
-    try {
-      const buf = await loadReference(r.src);
-      const f = letterFeature(trimSilence(toMono16k(buf)), p.glyph, p.vowel);
-      if (f) refFeats.push(f);
-    } catch { /* missing reference — skip */ }
-  }
+  // References are independent files: fetch/analyse them concurrently instead
+  // of serialising 5-11 round trips. Order is preserved for the vowel-form and
+  // long/short lookups below, so scoring is unchanged.
+  const refFeats = (
+    await Promise.all(
+      refs.map(async (r) => {
+        const p = parseLetterKey(r.key);
+        if (!p) return null;
+        try {
+          return await referenceLetterFeature(r.src, p.glyph, p.vowel);
+        } catch {
+          return null; /* missing reference — skip */
+        }
+      }),
+    )
+  ).filter((f): f is LetterFeat => f !== null);
 
   const eff = (f: LetterFeat) => effectiveDistance(dtwProfile(f.frames, userFeat.frames, 0.25, "cosine")).dEff;
   const targetEff = eff(target);

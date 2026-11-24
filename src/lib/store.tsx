@@ -117,7 +117,7 @@ function demoProgress(mod: ModuleKey, keys: string[], pct = 100): Record<string,
   return out;
 }
 
-type DB = { users: Profile[]; feedback: Feedback[]; currentUserId: string | null };
+type DB = { users: Profile[]; feedback: Feedback[]; currentUserId: string | null; schemaVersion?: number };
 
 function buildAuthProfile(session: SupabaseSession, entitled: boolean): Profile | null {
   const authUser = session.user;
@@ -135,7 +135,7 @@ function buildAuthProfile(session: SupabaseSession, entitled: boolean): Profile 
 
 function mergeAuthProfile(existing: Profile | undefined, fresh: Profile): Profile {
   if (!existing) return fresh;
-  const role = existing.role === "admin" && fresh.role !== "admin" ? "admin" : fresh.role;
+  const role = !isSupabaseAuthEnabled && existing.role === "admin" && fresh.role !== "admin" ? "admin" : fresh.role;
   const premium = fresh.premium || role === "reviewer" || role === "admin";
   return { ...existing, email: fresh.email, name: fresh.name, role, premium };
 }
@@ -181,15 +181,78 @@ function initialDB(): DB {
     { id: "f3", userId: "u-1", userName: "Omar Khalil", rating: 4, category: "UX", text: "The handwriting canvas needs a bigger clear button on phones.", createdAt: "2026-06-29", status: "resolved", reply: "Fixed in 1.2 — the toolbar is now 48px touch targets." },
     { id: "f4", userId: "u-4", userName: "Aisha Bello", rating: 5, category: "suggestion", text: "Add a Maghrebi pronunciation toggle for the country names.", createdAt: "2026-06-21", status: "open" },
   ];
-  return { users: [admin, demo, ...others], feedback, currentUserId: null };
+  return { users: [admin, demo, ...others], feedback, currentUserId: null, schemaVersion: SCHEMA_VERSION };
+}
+
+const SCHEMA_VERSION = 2;
+/** Pre-migration copy, so a bad migration can never destroy a learner's progress. */
+const BACKUP_KEY = `${KEY}.backup`;
+
+type StoredDb = Partial<DB> & { schemaVersion?: number };
+
+/**
+ * Validate and repair a stored database. Never throws; returns null when the
+ * payload is not recognisably an Arabic1010 database.
+ */
+export function normalizeDb(raw: unknown): DB | null {
+  if (!raw || typeof raw !== "object") return null;
+  const candidate = raw as StoredDb;
+  if (!Array.isArray(candidate.users)) return null;
+
+  const users = candidate.users
+    .filter((u): u is Profile => !!u && typeof u === "object" && typeof (u as Profile).id === "string")
+    .map((u): Profile => ({
+      ...seedProfile({}),
+      ...u,
+      role: u.role === "admin" || u.role === "reviewer" ? u.role : "user",
+      badges: Array.isArray(u.badges) ? u.badges : [],
+      mastered: Array.isArray(u.mastered) ? u.mastered : [],
+      progress: u.progress && typeof u.progress === "object" ? u.progress : {},
+      xp: Number.isFinite(u.xp) ? u.xp : 0,
+      streak: Number.isFinite(u.streak) ? u.streak : 1,
+      premium: u.premium === true,
+    }));
+
+  if (!users.length) return null;
+
+  const currentUserId =
+    typeof candidate.currentUserId === "string" && users.some((u) => u.id === candidate.currentUserId)
+      ? candidate.currentUserId
+      : null;
+
+  return {
+    users,
+    feedback: Array.isArray(candidate.feedback) ? candidate.feedback : [],
+    currentUserId,
+    schemaVersion: SCHEMA_VERSION,
+  };
 }
 
 function load(): DB {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as DB;
-  } catch { /* ignore */ }
-  return initialDB();
+    raw = localStorage.getItem(KEY);
+  } catch {
+    return initialDB(); // storage unavailable (private mode / blocked cookies)
+  }
+  if (!raw) return initialDB();
+
+  try {
+    const parsed = JSON.parse(raw) as StoredDb;
+    const normalized = normalizeDb(parsed);
+    if (!normalized) {
+      try { localStorage.setItem(BACKUP_KEY, raw); } catch { /* quota */ }
+      return initialDB();
+    }
+    const version = typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : 1;
+    if (version < SCHEMA_VERSION) {
+      try { localStorage.setItem(BACKUP_KEY, raw); } catch { /* quota */ }
+    }
+    return normalized;
+  } catch {
+    try { localStorage.setItem(BACKUP_KEY, raw); } catch { /* quota */ }
+    return initialDB();
+  }
 }
 
 type Settings = { harakat: boolean; sound: boolean; slow: boolean };
@@ -219,6 +282,10 @@ type Ctx = {
   clearBadge: () => void;
   toast: string | null;
   showToast: (s: string) => void;
+  /** Full database as formatted JSON, for manual backup. */
+  exportData: () => string;
+  /** Replace the database from a backup produced by `exportData`. */
+  importData: (json: string) => { ok: boolean; error?: string };
 };
 
 const AppCtx = createContext<Ctx>(null as unknown as Ctx);
@@ -247,7 +314,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [newBadge, setNewBadge] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => { localStorage.setItem(KEY, JSON.stringify(db)); }, [db]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(db));
+    } catch (error) {
+      // Quota exceeded / storage disabled: keep the session usable but say so.
+      console.warn("[store] progress could not be saved on this device", error);
+    }
+  }, [db]);
 
   const user = useMemo(
     () => db.users.find((u) => u.id === db.currentUserId) ?? null,
@@ -480,10 +554,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setSettings = (s: Partial<Settings>) => setSettingsState((x) => ({ ...x, ...s }));
 
+  const exportData = () => JSON.stringify(db, null, 2);
+
+  const importData: Ctx["importData"] = (json) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      return { ok: false, error: "That file is not valid JSON." };
+    }
+    const next = normalizeDb(parsed);
+    if (!next) return { ok: false, error: "That file does not look like an Arabic1010 backup." };
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(db));
+    } catch { /* quota — restoring still proceeds */ }
+    setDb(next);
+    showToast("Backup restored.");
+    return { ok: true };
+  };
+
   const value: Ctx = {
     db, user, settings, setSettings, signIn, signUp, signInGoogle, signOut,
     award, recordAttempt, recordPractice, addXp, setMastered, isLocked, learnedCount, isLearned,
-    dueItems, upgrade, addFeedback, replyFeedback,
+    dueItems, upgrade, addFeedback, replyFeedback, exportData, importData,
     newBadge, clearBadge: () => setNewBadge(null), toast, showToast,
   };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
