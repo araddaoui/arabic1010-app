@@ -221,6 +221,11 @@ const RECOG_ERROR_MESSAGES: Record<string, string> = {
 export const SPEECH_UNSUPPORTED_MESSAGE =
   "Speech recognition is not available in this browser. Please use Chrome on desktop or Android for the best experience.";
 
+/** Turn a recognizer error code into plain English for the learner. */
+export function describeRecognitionError(error?: string): string {
+  return (error && RECOG_ERROR_MESSAGES[error]) || "Speech recognition didn't work on this device.";
+}
+
 export function speechSupported() {
   return typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);

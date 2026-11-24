@@ -6,6 +6,7 @@ import {
   play,
   stopAll,
   listen,
+  describeRecognitionError,
   speechSupported,
   openMic,
   createAnalyzer,
@@ -25,6 +26,8 @@ import {
 } from "@/lib/audio";
 import { contrastKeys, letterScoringKeys } from "@/lib/contrast";
 import { cn } from "@/utils/cn";
+
+type RecogResult = Awaited<ReturnType<typeof listen>>;
 
 function hashBars(seed: string, n = 44) {
   let h = 0;
@@ -107,11 +110,16 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
   } | null>(null);
   const [progressIdx, setProgressIdx] = useState(-1);
   const recRef = useRef<{ stop: () => void } | null>(null);
+  /** Guards async work (a recognition attempt can outlive the component). */
+  const aliveRef = useRef(true);
   const model = hashBars(fileKey + text);
   const band = score === null ? null : scoreBand(score);
   const bandStyle = band ? BAND_STYLE[band] : null;
 
-  useEffect(() => () => { stopAll(); recRef.current?.stop(); }, []);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => { aliveRef.current = false; stopAll(); recRef.current?.stop(); };
+  }, []);
   useEffect(() => { setScore(null); setLevels([]); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setRecogInfo(null); setListening(false); }, [fileKey]);
 
   const doPlay = async (r = rate) => {
@@ -130,38 +138,39 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
 
   const record = async () => {
     if (recording) return;
-    setRecording(true); setLevels([]); setScore(null); setHeard(""); setNotice(null); setQuality(null); setMetrics(null);
+    setRecording(true); setLevels([]); setScore(null); setHeard(""); setNotice(null); setQuality(null); setMetrics(null); setRecogInfo(null);
     const captured: number[] = [];
-    let stream: MediaStream | null = null;
     let analyzer: { stop: () => void } | null = null;
     let animTimer: number | null = null;
     let blob: Blob | null = null;
-    let recogResult: Awaited<ReturnType<typeof listen>> | null = null;
+    let recogResult: RecogResult | null = null;
+    let micOpened = false;
     let targetMs = 4000;
 
     // One capture per mode, so SpeechRecognition and a mic stream never fight
     // over the microphone. "auto" resolves per folder: letters are acoustic-only;
-    // words, dialogue and Cognates (which opts in explicitly) are recognition-only
-    // — whole utterances understood as a phrase; everything else keeps the legacy
+    // words and dialogue are recognition-first; everything else keeps the legacy
     // hybrid behaviour until it is migrated.
-    //
-    // Capability fallback: iOS (all browsers, since they use WebKit) has no
-    // SpeechRecognition at all. Forcing recognition there left iPhone users with
-    // no recording path, only an error. When recognition is unavailable we score
-    // the clip acoustically against the native model instead.
-    const requested = strategy === "auto" ? (folder === "letters" ? "acoustic" : folder === "words" || folder === "dialogue" ? "recognition" : "hybrid") : strategy;
-    const mode = requested === "recognition" && !speechSupported() ? "acoustic" : requested;
+    const requested = strategy === "auto"
+      ? folder === "letters" ? "acoustic" : folder === "words" || folder === "dialogue" ? "recognition" : "hybrid"
+      : strategy;
+    // A recognizer can be *absent* (no API at all) or *present but broken*:
+    // Safari on iOS exposes one that fails when dictation/the speech service is
+    // off, and Chrome on Android fails when Google's speech service is
+    // unreachable. Absence is handled here; a runtime failure is handled after
+    // the attempt below by recording the utterance and scoring it acoustically
+    // instead of dead-ending on "we didn't catch that".
+    let mode = requested === "recognition" && !speechSupported() ? "acoustic" : requested;
 
-    if (mode !== "recognition" && !canRecordAudio()) {
-      setRecording(false);
-      setNotice({
-        title: "Recording isn't available here",
-        body: "This browser cannot capture audio. Use the Play button to listen and repeat, or open the site in Safari or Chrome.",
-      });
-      return;
-    }
+    const stopMeter = () => {
+      if (animTimer !== null) { clearInterval(animTimer); animTimer = null; }
+      setListening(false);
+      analyzer?.stop();
+      analyzer = null;
+      recRef.current = null;
+    };
 
-    try {
+    const run = async (): Promise<boolean> => {
       // Size the capture window to the native-speaker model (no mic involved).
       try {
         const ref = await loadReference(src);
@@ -185,46 +194,104 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
           );
         }, 80);
         recogResult = await listen(text, targetMs);
-      } else {
-        stream = await openMic();
-        analyzer = createAnalyzer(stream, (v) => {
-          captured.push(v);
-          setLevels(captured.slice(-44));
-        });
-        recRef.current = analyzer;
+        stopMeter();
+        if (!aliveRef.current) return true;
 
-        if (mode === "acoustic") {
-          const clip = recordClip(stream, targetMs);
-          blob = await clip.done;
-        } else {
-          // Legacy hybrid: recognize and record the same utterance concurrently.
-          const recogPromise = speechSupported() ? listen(text, targetMs) : null;
-          const clip = recordClip(stream, targetMs);
-          blob = await clip.done;
-          recogResult = recogPromise ? await recogPromise : null;
-        }
-      }
-    } catch {
-      /* mic denied — handled below */
-    } finally {
-      if (animTimer !== null) clearInterval(animTimer);
-      setListening(false);
-      analyzer?.stop();
-      recRef.current = null;
-      stream?.getTracks().forEach((t) => t.stop());
-    }
-    setRecording(false);
-
-    setRecogInfo(
-      recogResult
-        ? {
+        if (recogResult && !recogResult.error && recogResult.transcript) {
+          setRecogInfo({
             mode,
             target: text,
             targetNorm: normalizeArabic(text),
             transcript: recogResult.transcript,
             score: recogResult.score,
-            error: recogResult.error,
             alternatives: recogResult.alternatives ?? [],
+          });
+          setHeard(recogResult.transcript);
+          setScore(recogResult.score);
+          onScore?.(recogResult.score, recogResult.transcript);
+          return true;
+        }
+
+        // Recognizer failed or heard nothing. If this device can record, fall
+        // through and score a fresh clip acoustically rather than telling the
+        // learner to switch browsers.
+        if (!canRecordAudio()) {
+          setScore(null);
+          setNotice({
+            title: "Let's try that again",
+            body: `${describeRecognitionError(recogResult?.error)} We tried recording instead, but this browser blocked the microphone. Allow microphone access, then tap Retry.`,
+          });
+          return true;
+        }
+        mode = "acoustic";
+      }
+
+      if (!canRecordAudio()) {
+        setNotice({
+          title: "Recording isn't available here",
+          body: "This browser cannot capture audio. Use the Play button to listen and repeat, or open the site in Safari or Chrome.",
+        });
+        return true;
+      }
+
+      if (!aliveRef.current) return true;
+
+      // Microphone capture (acoustic, or the legacy hybrid recognition + clip).
+      let micStream: MediaStream | null = null;
+      try {
+        micStream = await openMic();
+        micOpened = true;
+        analyzer = createAnalyzer(micStream, (v) => {
+          captured.push(v);
+          setLevels(captured.slice(-44));
+        });
+        recRef.current = analyzer;
+
+        if (mode === "hybrid") {
+          // Recognize and record the same utterance concurrently.
+          const recogPromise = speechSupported() ? listen(text, targetMs) : null;
+          const clip = recordClip(micStream, targetMs);
+          blob = await clip.done;
+          recogResult = recogPromise ? await recogPromise : null;
+        } else {
+          blob = await recordClip(micStream, targetMs).done;
+        }
+      } finally {
+        analyzer?.stop();
+        analyzer = null;
+        recRef.current = null;
+        micStream?.getTracks().forEach((t) => t.stop());
+      }
+      return false;
+    };
+
+    let handled = false;
+    try {
+      handled = await run();
+    } catch {
+      /* mic denied — handled below */
+    } finally {
+      stopMeter();
+      setRecording(false);
+    }
+    if (handled) return;
+
+    // `run` assigned these from inside a closure; TypeScript's flow analysis
+    // cannot see that, so read them through explicitly typed views here.
+    const finalMode = mode as "acoustic" | "hybrid" | "recognition";
+    const finalRecog = recogResult as RecogResult | null;
+    const finalBlob = blob as Blob | null;
+
+    setRecogInfo(
+      finalRecog
+        ? {
+            mode: finalMode,
+            target: text,
+            targetNorm: normalizeArabic(text),
+            transcript: finalRecog.transcript,
+            score: finalRecog.score,
+            error: finalRecog.error,
+            alternatives: finalRecog.alternatives ?? [],
           }
         : null,
     );
@@ -235,8 +302,8 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     setLevels(finalLevels.length ? finalLevels : hashBars(text + "u"));
 
     // A denied mic in recognition mode surfaces through SpeechRecognition's own
-    // error (shown below); only mic-opening modes can fail here with no stream.
-    if (mode !== "recognition" && !stream) {
+    // error; only mic-opening modes can fail here with no stream.
+    if (finalMode !== "recognition" && !micOpened) {
       setNotice({
         title: "Microphone access blocked",
         body: "Allow microphone access and try again.",
@@ -245,23 +312,16 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
       return;
     }
 
-    // 1) Recognition understands *what* was said and is stable for whole words,
-    //    so migrated word modules use it exclusively — no acoustic fallback,
-    //    which was unreliable for full words and fought recognition for the mic.
-    if ((mode === "recognition" || mode === "hybrid") && recogResult) {
-      const res = recogResult;
+    // 1) Recognition understands *what* was said and is stable for whole words.
+    //    A failed recognition in "recognition" mode never reaches this point —
+    //    it has already fallen back to an acoustic capture. Only the legacy
+    //    hybrid path can still carry a result here.
+    if ((finalMode === "recognition" || finalMode === "hybrid") && finalRecog) {
+      const res = finalRecog;
       if (!res.error && res.transcript) {
         setHeard(res.transcript);
         setScore(res.score);
         onScore?.(res.score, res.transcript);
-        return;
-      }
-      if (mode === "recognition") {
-        setScore(null);
-        setNotice({
-          title: "Let's try that again",
-          body: res.error || "We didn't catch that. Hold the device steady, speak clearly, and say it once more.",
-        });
         return;
       }
     }
@@ -269,16 +329,16 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     // 2) Acoustic comparison against the native-speaker model, with confusable
     //    references as contrasts, so a wrong vowel can actually fail. Used by
     //    letters always, and by not-yet-migrated word modules as a fallback.
-    if ((mode === "acoustic" || mode === "hybrid") && blob && blob.size) {
+    if ((finalMode === "acoustic" || finalMode === "hybrid") && finalBlob && finalBlob.size) {
       try {
         let a: Assessment;
         if (folder === "letters") {
           // Explicit two-gate scorer: vowel (quality + length) and consonant.
           const refs = letterScoringKeys(fileKey).map((k) => ({ key: k, src: audioPath("letters", k) }));
-          a = await assessLetter(src, fileKey, blob, refs);
+          a = await assessLetter(src, fileKey, finalBlob, refs);
         } else {
           const contrastSrcs = contrastKeys(folder, fileKey).map((k) => audioPath(folder, k));
-          a = await assessAgainstReference(src, blob, contrastSrcs);
+          a = await assessAgainstReference(src, finalBlob, contrastSrcs);
         }
         setMetrics(a.metrics ?? null);
         setQuality(a.qualityLabel ?? null);
