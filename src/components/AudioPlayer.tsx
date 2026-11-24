@@ -10,6 +10,7 @@ import {
   openMic,
   createAnalyzer,
   recordClip,
+  canRecordAudio,
   loadReference,
   assessAgainstReference,
   assessLetter,
@@ -143,7 +144,22 @@ export default function AudioPlayer({ folder, fileKey, text, label, allowRecord 
     // words, dialogue and Cognates (which opts in explicitly) are recognition-only
     // — whole utterances understood as a phrase; everything else keeps the legacy
     // hybrid behaviour until it is migrated.
-    const mode = strategy === "auto" ? (folder === "letters" ? "acoustic" : folder === "words" || folder === "dialogue" ? "recognition" : "hybrid") : strategy;
+    //
+    // Capability fallback: iOS (all browsers, since they use WebKit) has no
+    // SpeechRecognition at all. Forcing recognition there left iPhone users with
+    // no recording path, only an error. When recognition is unavailable we score
+    // the clip acoustically against the native model instead.
+    const requested = strategy === "auto" ? (folder === "letters" ? "acoustic" : folder === "words" || folder === "dialogue" ? "recognition" : "hybrid") : strategy;
+    const mode = requested === "recognition" && !speechSupported() ? "acoustic" : requested;
+
+    if (mode !== "recognition" && !canRecordAudio()) {
+      setRecording(false);
+      setNotice({
+        title: "Recording isn't available here",
+        body: "This browser cannot capture audio. Use the Play button to listen and repeat, or open the site in Safari or Chrome.",
+      });
+      return;
+    }
 
     try {
       // Size the capture window to the native-speaker model (no mic involved).

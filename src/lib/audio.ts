@@ -298,6 +298,9 @@ function audioCtx(): AudioContext {
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
     sharedCtx = new Ctx();
   }
+  // iOS starts the context suspended until a gesture; resuming is a no-op when
+  // it is already running and makes decode/analysis reliable after an await.
+  if (sharedCtx.state === "suspended") void sharedCtx.resume().catch(() => { /* noop */ });
   return sharedCtx;
 }
 
@@ -880,18 +883,24 @@ export async function openMic(): Promise<MediaStream> {
   // normalization anyway, so AGC does not distort the phonetic content. We do
   // disable noise suppression and echo cancellation, whose spectral sculpting
   // would fight the comparison.
-  return navigator.mediaDevices.getUserMedia({
-    audio: {
-      autoGainControl: true,
-      noiseSuppression: false,
-      echoCancellation: false,
-    },
-  });
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: {
+        autoGainControl: true,
+        noiseSuppression: false,
+        echoCancellation: false,
+      },
+    });
+  } catch {
+    // Safari/iOS can reject the detailed constraints; plain audio still works.
+    return navigator.mediaDevices.getUserMedia({ audio: true });
+  }
 }
 
 /** Level meter for the waveform UI. Does not open or close the mic stream. */
 export function createAnalyzer(stream: MediaStream, onLevel: (v: number) => void) {
   const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  if (ctx.state === "suspended") void ctx.resume().catch(() => { /* noop */ });
   const src = ctx.createMediaStreamSource(stream);
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 512;
@@ -917,27 +926,71 @@ export function createAnalyzer(stream: MediaStream, onLevel: (v: number) => void
 /** Pick the best MediaRecorder mime type this browser supports. */
 export function recorderMime(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
-  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4", "audio/mpeg"];
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    // Safari (including every iOS browser) records MP4/AAC, not WebM.
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/mp4",
+    "audio/mpeg",
+  ];
   return candidates.find((c) => {
     try { return MediaRecorder.isTypeSupported(c); } catch { return false; }
   });
 }
 
+/** True when this browser can capture microphone audio at all. */
+export function canRecordAudio(): boolean {
+  return typeof window !== "undefined" &&
+    typeof MediaRecorder !== "undefined" &&
+    !!navigator.mediaDevices?.getUserMedia;
+}
+
 /** Record from an open mic stream for `ms` ms; resolve with the captured blob. */
 export function recordClip(stream: MediaStream, ms: number): { stop: () => void; done: Promise<Blob | null> } {
-  if (typeof MediaRecorder === "undefined") return { stop: () => { /* noop */ }, done: Promise.resolve(null) };
+  const empty = { stop: () => { /* noop */ }, done: Promise.resolve<Blob | null>(null) };
+  if (typeof MediaRecorder === "undefined") return empty;
+
   const mime = recorderMime();
   // A higher bitrate keeps more spectral detail through Opus, which matters for
   // the MFCC comparison (low bitrates smear high-frequency content).
   const opts: MediaRecorderOptions = { audioBitsPerSecond: 128000 };
   if (mime) opts.mimeType = mime;
-  const recorder = new MediaRecorder(stream, opts);
+
+  let recorder: MediaRecorder;
+  try {
+    recorder = new MediaRecorder(stream, opts);
+  } catch {
+    // Safari versions that reject an explicit mimeType still record with defaults.
+    try {
+      recorder = new MediaRecorder(stream);
+    } catch {
+      return empty;
+    }
+  }
+
   const chunks: BlobPart[] = [];
   recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   const done = new Promise<Blob | null>((resolve) => {
-    recorder.onstop = () => resolve(chunks.length ? new Blob(chunks, { type: mime || "audio/webm" }) : null);
+    let settled = false;
+    const finish = (value: Blob | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    recorder.onstop = () => finish(chunks.length ? new Blob(chunks, { type: mime || "audio/webm" }) : null);
+    recorder.onerror = () => finish(null);
+    // Safety net: iOS can swallow onstop if the stream ends during capture.
+    setTimeout(() => finish(chunks.length ? new Blob(chunks, { type: mime || "audio/webm" }) : null), ms + 1500);
   });
-  recorder.start();
+
+  try {
+    recorder.start();
+  } catch {
+    return empty;
+  }
+
   const timer = setTimeout(() => { try { recorder.stop(); } catch { /* noop */ } }, ms);
   return {
     stop() {
