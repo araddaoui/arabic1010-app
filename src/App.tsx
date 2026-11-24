@@ -33,12 +33,35 @@ function useHashRoute(): [string, (p: string) => void] {
   return [path, navigate];
 }
 
+/**
+ * Dev-only crash trigger for exercising the error boundaries. It is statically
+ * removed from production builds (`import.meta.env.DEV` is false there).
+ *   ?boom=1    → page boundary
+ *   ?boom=app  → app boundary
+ */
+function devCrash(scope: "page" | "app") {
+  if (!import.meta.env.DEV) return;
+  const mode = new URLSearchParams(window.location.search).get("boom");
+  if (mode === scope || (scope === "page" && mode === "1")) {
+    throw new Error(
+      `Dev-only boundary test (${scope}). Remove ?boom=${mode} from the URL to recover.`,
+    );
+  }
+}
+
+function DevCrash({ scope }: { scope: "page" | "app" }) {
+  devCrash(scope);
+  return null;
+}
+
 function Shell() {
   const { user } = useApp();
   const [path, navigate] = useHashRoute();
   const [booting, setBooting] = useState(true);
 
   useEffect(() => { const t = setTimeout(() => setBooting(false), 500); return () => clearTimeout(t); }, []);
+
+  devCrash("app");
 
   if (booting) {
     return (
@@ -77,6 +100,7 @@ function Shell() {
   return (
     <Layout path={path} navigate={navigate}>
       <ErrorBoundary scope="page" resetKey={path}>
+        <DevCrash scope="page" />
         <Suspense fallback={<Spinner label="Loading module…" />}>{page()}</Suspense>
       </ErrorBoundary>
     </Layout>
